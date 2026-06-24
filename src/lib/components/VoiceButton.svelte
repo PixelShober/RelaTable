@@ -1,12 +1,8 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
+	import { fade, scale } from 'svelte/transition';
 
-	// Mikrofon → Web Speech API (Transkript) → /api/narrate (KI-Agent über die
-	// MCP-Tools) → Rückfragen im Panel → Graph aktualisiert sich (invalidateAll).
-	// ponytail: Web Speech API ist gratis & ohne Dependency, läuft aber v.a. in
-	// Chrome/Edge. Fallback: Tippen. Upgrade-Pfad: Server-Transkription (Whisper),
-	// falls Firefox-Support oder höhere Genauigkeit nötig wird.
 	type ChatMsg = { role: 'user' | 'assistant'; content: string };
 	type ApiMsg = { role: string; content: string | null; [k: string]: unknown };
 
@@ -15,12 +11,10 @@
 		typeof window !== 'undefined' &&
 		((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 
-	let active = $state(false); // Aufnahme läuft
+	let active = $state(false);
 	let error = $state('');
 	let bars = $state<number[]>(Array(BARS).fill(0));
 
-	// Voice-Backend-Status (OpenRouter): Mikro sperren, wenn kein gültiger Key /
-	// keine Credits — mit Tooltip + Popup, statt erst nach dem Senden zu scheitern.
 	type Reason = 'loading' | 'no-key' | 'invalid-key' | 'no-credits' | 'error' | null;
 	const MSG: Record<NonNullable<Reason>, string> = {
 		loading: 'Sprachdienst wird geprüft…',
@@ -50,16 +44,27 @@
 	}
 
 	let convoOpen = $state(false);
-	let convo = $state<ChatMsg[]>([]); // sichtbare Verlauf (nur user/assistant-Text)
-	let history: ApiMsg[] = []; // vollständige API-Konversation (inkl. system/tool)
-	let busy = $state(false); // wartet auf KI
-	let draft = $state(''); // Tipp-Antwort / Fallback-Eingabe
+	let convo = $state<ChatMsg[]>([]);
+	let history: ApiMsg[] = [];
+	let busy = $state(false);
+	let draft = $state('');
 
 	let stream: MediaStream | null = null;
 	let ctx: AudioContext | null = null;
 	let raf = 0;
 	let rec: any = null;
 	let transcript = '';
+
+	// Overlay is open while recording or while a conversation is in progress.
+	const overlayOpen = $derived(active || convoOpen);
+
+	async function openAndStart() {
+		if (blocked) {
+			blockedClick();
+			return;
+		}
+		await start();
+	}
 
 	async function start() {
 		error = '';
@@ -70,7 +75,6 @@
 			error = 'Kein Mikrofonzugriff';
 			return;
 		}
-		// Pegel-Visualisierung
 		ctx = new AudioContext();
 		const src = ctx.createMediaStreamSource(stream);
 		const an = ctx.createAnalyser();
@@ -93,7 +97,6 @@
 		};
 		tick();
 
-		// Spracherkennung (parallel zur Pegelanzeige)
 		if (SR) {
 			rec = new SR();
 			rec.lang = 'de-DE';
@@ -136,8 +139,10 @@
 		stopCapture();
 		const text = transcript.trim();
 		if (!text) {
-			error = SR ? 'Nichts verstanden — bitte erneut.' : 'Spracherkennung nicht verfügbar — bitte tippen.';
-			convoOpen = SR ? convoOpen : true; // ohne SR direkt Tipp-Panel öffnen
+			error = SR
+				? 'Nichts verstanden — bitte erneut.'
+				: 'Spracherkennung nicht verfügbar — bitte tippen.';
+			convoOpen = !SR;
 			return;
 		}
 		await send(text);
@@ -149,7 +154,6 @@
 		convo = [...convo, { role: 'user', content: text }];
 		history = [...history, { role: 'user', content: text }];
 		busy = true;
-		// Client-Timeout, damit ein hängender Request nicht ewig "KI denkt nach…" zeigt.
 		const ctrl = new AbortController();
 		const timer = window.setTimeout(() => ctrl.abort(), 150_000);
 		try {
@@ -159,11 +163,12 @@
 				body: JSON.stringify({ messages: history }),
 				signal: ctrl.signal
 			});
-			if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.message || `Fehler ${res.status}`);
-			const data = await res.json();
-			history = data.messages;
-			convo = [...convo, { role: 'assistant', content: data.reply || '(keine Antwort)' }];
-			if (data.wrote) await invalidateAll(); // Graph live aktualisieren
+			if (!res.ok)
+				throw new Error((await res.json().catch(() => ({})))?.message || `Fehler ${res.status}`);
+			const resp = await res.json();
+			history = resp.messages;
+			convo = [...convo, { role: 'assistant', content: resp.reply || '(keine Antwort)' }];
+			if (resp.wrote) await invalidateAll();
 		} catch (e) {
 			error =
 				e instanceof Error && e.name === 'AbortError'
@@ -171,7 +176,6 @@
 					: e instanceof Error
 						? e.message
 						: 'Anfrage fehlgeschlagen';
-			// Persistente Ursache → Mikro grau schalten (OpenRouter meldet "402"/"401").
 			if (/402|credit|insufficient/i.test(error)) reason = 'no-credits';
 			else if (/401|api.?key|unauthor/i.test(error)) reason = 'invalid-key';
 		} finally {
@@ -198,80 +202,197 @@
 	onDestroy(stopCapture);
 </script>
 
-{#if convoOpen}
-	<!-- Erzähl-Dialog: Verlauf + Rückfragen + Antwort (tippen oder Mikro) -->
-	<div class="flex w-80 max-w-[calc(100vw-2rem)] flex-col rounded-2xl border border-line bg-card shadow-xl">
-		<div class="flex items-center justify-between border-b border-line px-3 py-2">
-			<b class="text-sm">Erzählung</b>
-			<button type="button" onclick={closeConvo} class="text-mut hover:text-ink" aria-label="Schließen">✕</button>
-		</div>
-		<div class="flex max-h-80 flex-col gap-2 overflow-y-auto px-3 py-2 text-sm">
-			{#each convo as m}
-				<div class="flex {m.role === 'user' ? 'justify-end' : 'justify-start'}">
-					<span class="max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-1.5 {m.role === 'user' ? 'bg-accent text-white' : 'bg-bg text-ink'}">{m.content}</span>
-				</div>
-			{/each}
-			{#if busy}
-				<div class="text-xs text-mut">KI denkt nach…</div>
-			{/if}
-			{#if error}
-				<div class="text-xs text-warn">{error}</div>
-			{/if}
-		</div>
-		<div class="flex items-center gap-1.5 border-t border-line p-2">
-			<input
-				bind:value={draft}
-				onkeydown={(e) => e.key === 'Enter' && submitDraft()}
-				placeholder="Antwort tippen…"
-				disabled={busy}
-				class="inp btn-sm flex-1"
-				aria-label="Antwort"
-			/>
-			{#if active}
-				<button type="button" onclick={confirm} class="grid h-8 w-8 place-items-center rounded-full bg-accent text-white" aria-label="Aufnahme senden">✓</button>
-			{:else}
-				<button type="button" onclick={start} class="grid h-8 w-8 place-items-center rounded-full border border-line text-ink hover:bg-bg" aria-label="Sprechen" title="Sprechen">
-					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0" /><line x1="12" y1="19" x2="12" y2="22" /></svg>
-				</button>
-			{/if}
-			<button type="button" onclick={submitDraft} disabled={busy || !draft.trim()} class="btn btn-primary btn-sm" aria-label="Senden">Senden</button>
-		</div>
-	</div>
-{:else if active}
-	<!-- ChatGPT-style live voice bar -->
-	<div class="flex items-center gap-2 rounded-full border border-line bg-card px-3 py-1.5 shadow-md">
-		<div class="flex h-6 items-center gap-[2px]">
-			{#each bars as b}
-				<span class="w-[3px] rounded-full bg-accent" style="height:{Math.max(3, b * 24)}px"></span>
-			{/each}
-		</div>
-		<button type="button" onclick={cancel} aria-label="Abbrechen"
-			class="grid h-7 w-7 place-items-center rounded-full text-mut hover:bg-bg hover:text-ink">✕</button>
-		<button type="button" onclick={confirm} aria-label="Bestätigen"
-			class="grid h-7 w-7 place-items-center rounded-full bg-accent text-white hover:opacity-90">✓</button>
-	</div>
-{:else}
-	<div class="relative">
+<!-- Global FAB: visible when no overlay is open -->
+{#if !overlayOpen}
+	<div
+		class="fixed bottom-[70px] right-4 z-40 md:bottom-6 md:right-6"
+		transition:scale={{ duration: 200, start: 0.8 }}
+	>
 		{#if popup && reason}
-			<div class="absolute bottom-full right-0 mb-2 w-56 rounded-lg border border-warn bg-card px-3 py-2 text-[12px] text-warn shadow-lg" role="alert">
+			<div
+				class="absolute bottom-full right-0 mb-2 w-56 rounded-lg border border-warn bg-card px-3 py-2 text-[12px] text-warn shadow-lg"
+				role="alert"
+			>
 				{MSG[reason]}
 			</div>
 		{/if}
 		<button
 			type="button"
-			onclick={() => (blocked ? blockedClick() : start())}
+			onclick={openAndStart}
 			aria-label="Mikrofon starten"
 			aria-disabled={blocked}
 			title={reason ? MSG[reason] : error || 'Erzählen'}
-			class="grid h-11 w-11 place-items-center rounded-full border border-line shadow-md transition-colors
-				{blocked ? 'cursor-not-allowed bg-card text-mut opacity-50' : error ? 'bg-card text-warn' : 'bg-card text-ink hover:bg-bg'}"
+			class="grid h-14 w-14 place-items-center rounded-full shadow-lg transition-all duration-200
+				{blocked
+				? 'cursor-not-allowed border border-line bg-card text-mut opacity-50'
+				: error
+					? 'border border-warn bg-card text-warn'
+					: 'bg-accent text-white hover:opacity-90 active:scale-95'}"
 		>
-			<!-- mic glyph -->
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+			<svg
+				width="26"
+				height="26"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
 				<rect x="9" y="2" width="6" height="12" rx="3" />
 				<path d="M5 10a7 7 0 0 0 14 0" />
 				<line x1="12" y1="19" x2="12" y2="22" />
 			</svg>
 		</button>
+	</div>
+{/if}
+
+<!-- Full-screen overlay: recording or conversation -->
+{#if overlayOpen}
+	<div
+		class="fixed inset-0 z-50 flex flex-col bg-black/60 backdrop-blur-sm"
+		transition:fade={{ duration: 200 }}
+	>
+		{#if convoOpen}
+			<!-- Conversation panel -->
+			<div class="flex flex-1 items-center justify-center p-4">
+				<div
+					class="flex w-full max-w-md flex-col rounded-2xl border border-line bg-card shadow-xl"
+					transition:scale={{ duration: 250, start: 0.92 }}
+				>
+					<div class="flex items-center justify-between border-b border-line px-4 py-3">
+						<b class="text-sm">Erzählung</b>
+						<button
+							type="button"
+							onclick={closeConvo}
+							class="text-mut hover:text-ink"
+							aria-label="Schließen">✕</button
+						>
+					</div>
+					<div class="flex max-h-96 flex-col gap-2 overflow-y-auto px-4 py-3 text-sm">
+						{#each convo as m}
+							<div class="flex {m.role === 'user' ? 'justify-end' : 'justify-start'}">
+								<span
+									class="max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-1.5
+										{m.role === 'user' ? 'bg-accent text-white' : 'bg-bg text-ink'}"
+								>{m.content}</span>
+							</div>
+						{/each}
+						{#if busy}
+							<div class="text-xs text-mut">KI denkt nach…</div>
+						{/if}
+						{#if error}
+							<div class="text-xs text-warn">{error}</div>
+						{/if}
+					</div>
+					<div class="flex items-center gap-1.5 border-t border-line p-3">
+						<input
+							bind:value={draft}
+							onkeydown={(e) => e.key === 'Enter' && submitDraft()}
+							placeholder="Antwort tippen…"
+							disabled={busy}
+							class="inp btn-sm flex-1"
+							aria-label="Antwort"
+						/>
+						{#if active}
+							<button
+								type="button"
+								onclick={confirm}
+								class="grid h-8 w-8 place-items-center rounded-full bg-accent text-white"
+								aria-label="Aufnahme senden">✓</button
+							>
+						{:else}
+							<button
+								type="button"
+								onclick={start}
+								class="grid h-8 w-8 place-items-center rounded-full border border-line text-ink hover:bg-bg"
+								aria-label="Sprechen"
+								title="Sprechen"
+							>
+								<svg
+									width="16"
+									height="16"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									><rect x="9" y="2" width="6" height="12" rx="3" /><path
+										d="M5 10a7 7 0 0 0 14 0"
+									/><line x1="12" y1="19" x2="12" y2="22" /></svg
+								>
+							</button>
+						{/if}
+						<button
+							type="button"
+							onclick={submitDraft}
+							disabled={busy || !draft.trim()}
+							class="btn btn-primary btn-sm"
+							aria-label="Senden">Senden</button
+						>
+					</div>
+				</div>
+			</div>
+		{:else}
+			<!-- Recording UI: large mic + level bars + controls -->
+			<div class="flex flex-1 flex-col items-center justify-center gap-8">
+				<!-- Level visualiser: bars grow upward from baseline -->
+				<div class="flex h-16 items-end gap-[3px]">
+					{#each bars as b}
+						<span
+							class="w-1 rounded-full bg-white/70 transition-[height] duration-75"
+							style="height:{Math.max(4, b * 64)}px"
+						></span>
+					{/each}
+				</div>
+
+				<!-- Big mic button: tap = confirm and send -->
+				<button
+					type="button"
+					onclick={confirm}
+					class="grid h-20 w-20 place-items-center rounded-full bg-accent text-white shadow-2xl ring-8 ring-accent/25 transition-transform active:scale-95"
+					aria-label="Aufnahme bestätigen und senden"
+					transition:scale={{ duration: 300, start: 0.5 }}
+				>
+					<svg
+						width="36"
+						height="36"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<rect x="9" y="2" width="6" height="12" rx="3" />
+						<path d="M5 10a7 7 0 0 0 14 0" />
+						<line x1="12" y1="19" x2="12" y2="22" />
+					</svg>
+				</button>
+
+				<p class="text-sm text-white/70">Tippe zum Senden</p>
+
+				{#if error}
+					<p class="rounded-lg bg-black/30 px-3 py-1.5 text-xs text-warn">{error}</p>
+				{/if}
+
+				<!-- Cancel (✕) and confirm (✓) -->
+				<div class="flex gap-6">
+					<button
+						type="button"
+						onclick={cancel}
+						class="grid h-12 w-12 place-items-center rounded-full border-2 border-white/30 text-white transition-colors hover:border-white/60 hover:bg-white/10"
+						aria-label="Abbrechen"
+					>✕</button>
+					<button
+						type="button"
+						onclick={confirm}
+						class="grid h-12 w-12 place-items-center rounded-full bg-white text-accent shadow-lg transition-all hover:bg-white/90 active:scale-95"
+						aria-label="Bestätigen und senden"
+					>✓</button>
+				</div>
+			</div>
+		{/if}
 	</div>
 {/if}

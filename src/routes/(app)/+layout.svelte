@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { NAV_ITEMS, MOBILE_TABS, isActive } from '$lib/nav';
+	import VoiceButton from '$lib/components/VoiceButton.svelte';
 
 	let { children, data } = $props();
 
@@ -113,6 +114,9 @@
 			Mehr
 		</button>
 	</nav>
+
+	<!-- Global voice FAB + overlay -->
+	<VoiceButton />
 
 	<!-- "Mehr" sheet -->
 	{#if moreOpen}

@@ -4,8 +4,6 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import Topbar from '$lib/components/Topbar.svelte';
-	import VoiceButton from '$lib/components/VoiceButton.svelte';
-
 	let { data } = $props();
 
 	let container: HTMLDivElement;
@@ -449,8 +447,4 @@
 		</div>
 	{/if}
 
-	<!-- Mic level visualiser (bottom-right) -->
-	<div class="absolute bottom-2.5 right-2.5">
-		<VoiceButton />
-	</div>
 </div>
