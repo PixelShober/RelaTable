@@ -53,7 +53,8 @@
 	let ctx: AudioContext | null = null;
 	let raf = 0;
 	let rec: any = null;
-	let transcript = '';
+	let transcript = $state('');
+	let interimTranscript = $state('');
 
 	// Overlay is open while recording or while a conversation is in progress.
 	const overlayOpen = $derived(active || convoOpen);
@@ -101,14 +102,43 @@
 			rec = new SR();
 			rec.lang = 'de-DE';
 			rec.continuous = true;
-			rec.interimResults = false;
+			rec.interimResults = true;
 			rec.onresult = (e: any) => {
+				let interim = '';
 				for (let i = e.resultIndex; i < e.results.length; i++) {
-					if (e.results[i].isFinal) transcript += e.results[i][0].transcript + ' ';
+					if (e.results[i].isFinal) {
+						transcript += e.results[i][0].transcript + ' ';
+					} else {
+						interim += e.results[i][0].transcript;
+					}
 				}
+				interimTranscript = interim;
+				console.log('[SR] result — final:', JSON.stringify(transcript), 'interim:', JSON.stringify(interim));
 			};
 			rec.onerror = (e: any) => {
-				if (e.error === 'not-allowed') error = 'Kein Mikrofonzugriff';
+				console.warn('[SR] error:', e.error);
+				if (e.error === 'not-allowed') {
+					error = 'Kein Mikrofonzugriff';
+				} else if (e.error === 'no-speech') {
+					// no-speech is expected; don't show an error
+				} else if (e.error === 'network') {
+					error = 'Netzwerkfehler bei der Spracherkennung';
+				} else if (e.error === 'audio-capture') {
+					error = 'Mikrofon nicht verfügbar';
+				} else if (e.error === 'aborted') {
+					// aborted intentionally, ignore
+				} else {
+					error = `Spracherkennungsfehler: ${e.error}`;
+				}
+			};
+			rec.onstart = () => console.log('[SR] started');
+			rec.onend = () => {
+				console.log('[SR] ended, active:', active);
+				interimTranscript = '';
+				// On mobile, SR auto-stops after silence — restart if still recording
+				if (active && rec) {
+					try { rec.start(); } catch { /* already started */ }
+				}
 			};
 			rec.start();
 		}
@@ -124,6 +154,7 @@
 			/* schon gestoppt */
 		}
 		rec = null;
+		interimTranscript = '';
 		stream?.getTracks().forEach((t) => t.stop());
 		ctx?.close();
 		stream = null;
@@ -133,6 +164,7 @@
 	function cancel() {
 		stopCapture();
 		transcript = '';
+		interimTranscript = '';
 	}
 
 	async function confirm() {
@@ -347,6 +379,13 @@
 					{/each}
 				</div>
 
+				<!-- Live transcript display -->
+				{#if transcript || interimTranscript}
+					<div class="max-w-xs rounded-xl bg-black/40 px-4 py-2 text-center text-sm text-white/90">
+						{transcript}<span class="text-white/50 italic">{interimTranscript}</span>
+					</div>
+				{/if}
+
 				<!-- Big mic button: tap = confirm and send -->
 				<button
 					type="button"
@@ -392,6 +431,24 @@
 						aria-label="Bestätigen und senden"
 					>✓</button>
 				</div>
+
+				{#if !SR}
+					<div class="flex w-full max-w-xs gap-2 px-4">
+						<input
+							bind:value={draft}
+							onkeydown={(e) => { if (e.key === 'Enter') { stopCapture(); submitDraft(); } }}
+							placeholder="Eingabe tippen…"
+							class="inp flex-1 text-sm"
+							aria-label="Text eingeben"
+						/>
+						<button
+							type="button"
+							onclick={() => { stopCapture(); submitDraft(); }}
+							disabled={!draft.trim()}
+							class="btn btn-primary btn-sm"
+						>Senden</button>
+					</div>
+				{/if}
 			</div>
 		{/if}
 	</div>
