@@ -10,9 +10,14 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - name: Call n8n deploy webhook
-        run: |
-          curl -sS -X POST "${{ secrets.N8N_DEPLOY_WEBHOOK_URL }}" \
-            -H "X-Deploy-Token: ${{ secrets.N8N_DEPLOY_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d '{"image":"ghcr.io/${{ github.repository }}:main"}'
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /docker/relatable
+            docker compose pull
+            docker compose up -d
+            docker image prune -f
