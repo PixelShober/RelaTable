@@ -1,0 +1,18 @@
+name: deploy-production
+on:
+  workflow_run:
+    workflows: ["build-push"]
+    types: [completed]
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Call n8n deploy webhook
+        run: |
+          curl -sS -X POST "${{ secrets.N8N_DEPLOY_WEBHOOK_URL }}" \
+            -H "X-Deploy-Token: ${{ secrets.N8N_DEPLOY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"image":"ghcr.io/${{ github.repository }}:main"}'

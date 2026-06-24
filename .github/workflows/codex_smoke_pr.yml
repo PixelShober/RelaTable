@@ -1,0 +1,60 @@
+name: codex-smoke-pr
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  smoke:
+    if: contains(github.event.label.name, 'codex:build') || contains(github.event.label.name, 'codex:resume')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Codex CLI
+        run: npm i -g @openai/codex
+
+      - name: Restore Codex auth.json (Abo-Login)
+        env:
+          CODEX_AUTH_JSON_B64: ${{ secrets.CODEX_AUTH_JSON_B64 }}
+        run: |
+          mkdir -p ~/.codex
+          echo "$CODEX_AUTH_JSON_B64" | base64 -d > ~/.codex/auth.json
+          chmod 600 ~/.codex/auth.json
+
+      - name: Create branch
+        run: |
+          ISSUE=${{ github.event.issue.number }}
+          git checkout -b codex/smoke-issue-$ISSUE
+
+      - name: Run Codex (create/append SMOKE.md)
+        run: |
+          ISSUE=${{ github.event.issue.number }}
+          TITLE="${{ github.event.issue.title }}"
+          codex exec --ask-for-approval never --sandbox workspace-write \
+            "Create or update a file named SMOKE.md. It must contain a header 'Smoke Test' and a line 'Issue: #$ISSUE - $TITLE'. Do not change anything else."
+
+      - name: Commit + push + open PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No changes produced."
+            exit 0
+          fi
+          git add -A
+          git commit -m "chore: smoke test for issue #${{ github.event.issue.number }}"
+          git push -u origin HEAD
+
+          gh pr create \
+            --title "chore: smoke #${{ github.event.issue.number }}" \
+            --body "Smoke PR created by Codex. Merge after review to trigger deploy." \
+            --base main
