@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RelaTable – Review 3 · Block 5: Beziehungsdialoge</title>
+<style>
+  :root{--ink:#2b2b2b;--mut:#777;--line:#bbb;--bg:#f4f4f5;--card:#fff;--accent:#555;--warn:#b3541e;--ok:#2f7a43}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,Segoe UI,Roboto,sans-serif}
+  h1{font-size:20px;margin:0 0 4px}h2{font-size:15px;margin:0}
+  .wrap{max-width:1180px;margin:0 auto;padding:24px}.lead{color:var(--mut);margin:0 0 18px}
+  .screen{background:var(--card);border:1px solid var(--line);border-radius:10px;margin:0 0 26px;overflow:hidden}
+  .screen>header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;background:#ececef;border-bottom:1px solid var(--line)}
+  .tag{font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:20px;padding:2px 9px;background:#fff}
+  .body{padding:16px}.muted{color:var(--mut)}
+  .btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--accent);border-radius:7px;padding:6px 11px;background:#fff;font-size:13px}
+  .btn.primary{background:var(--accent);color:#fff}.btn.warn{border-color:var(--warn);color:var(--warn)}.btn[disabled]{opacity:.45}
+  .co{display:inline-flex;width:18px;height:18px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;align-items:center;justify-content:center;margin-right:5px}
+  .ann{margin:12px 0 0;padding:12px 14px;background:#fafafa;border:1px solid var(--line);border-radius:8px;font-size:13px}.ann ul{margin:6px 0 0;padding-left:18px}
+  .row{display:flex;gap:16px;flex-wrap:wrap}.grow{flex:1;min-width:0}
+  .inp{border:1px solid var(--line);border-radius:7px;background:#fff;padding:8px 10px;color:#999}
+  label{font-size:12px;color:var(--mut)}
+  .modal{border:1px solid var(--line);border-radius:10px;max-width:460px;background:#fff;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+  .modal .h{padding:12px 14px;border-bottom:1px solid var(--line);font-weight:600}
+  .modal .c{padding:14px}.modal .f{padding:12px 14px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
+  .opt{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:7px;padding:9px;margin-bottom:7px}
+  .opt.sel{border-color:var(--accent);background:#f0f0f3}
+  .note{border-radius:7px;padding:10px;font-size:12.5px}
+  .note.warn{border:1px solid var(--warn);background:#fbf1ea;color:#7a3a14}
+  .note.info{border:1px solid #9bb;background:#eef5f6;color:#2c5b63}
+  .legend{font-size:12px;color:var(--mut);margin:10px 0 22px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;font-size:12px;flex-wrap:wrap}
+  .seg div{padding:5px 9px;border-right:1px solid var(--line)}.seg .on{background:#d6d6db;font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>RelaTable — Review 3 · Block 5: Beziehungsdialoge</h1>
+  <p class="lead">SCR-040…046. Geführte Dialoge (VAR-10=A) setzen die Beziehungsregeln durch (<a href="../review-1/07_beziehungsregeln.md">07</a>). Flows FLOW-07…12 · AC-040…052.</p>
+  <p class="legend">① ② ③ = Callouts. Unscharfe Zeit überall via Präzisions-Auswahl (VAR-06=A).</p>
+
+  <div class="row">
+    <!-- SCR-040 Connection -->
+    <section class="screen grow" style="min-width:430px">
+      <header><h2>SCR-040 · Connection erstellen</h2><span class="tag">FEAT-020 · FLOW-07 · AC-040..042</span></header>
+      <div class="body">
+        <div class="modal">
+          <div class="h">Verbindung für „Mara Vogt"</div>
+          <div class="c">
+            <label>Zweite Person <span class="co">1</span></label>
+            <div class="inp" style="margin:3px 0 8px">Person suchen…</div>
+            <div class="note info">Paar ist ungeordnet; ein Paar existiert nur einmal. Selbe Person/Selbstkante nicht möglich.</div>
+            <div class="note warn" style="margin-top:8px">② „Mara + Aylin" existiert bereits → zur bestehenden Pair-Detail springen.</div>
+          </div>
+          <div class="f"><button class="btn">Abbrechen</button><button class="btn primary">Weiter → Typ wählen</button></div>
+        </div>
+        <div class="ann"><b>Annotation</b><ul>
+          <li>① Personensuche; nach Anlage direkt Nähegrad-/Typdialog (SCR-041).</li>
+          <li>② Duplikat/Selbstkante werden verhindert (AC-041/042).</li>
+        </ul></div>
+      </div>
+    </section>
+
+    <!-- SCR-041 Nähegrad -->
+    <section class="screen grow" style="min-width:430px">
+      <header><h2>SCR-041 · Nähegrad wählen / ändern</h2><span class="tag">FEAT-021/022 · FLOW-08 · AC-043/044</span></header>
+      <div class="body">
+        <div class="modal">
+          <div class="h">Nähegrad: Mara &amp; Aylin</div>
+          <div class="c">
+            <div class="opt">○ Bekanntschaft</div>
+            <div class="opt sel">◉ Freundschaft <span class="co">1</span></div>
+            <div class="opt">○ Enge Freundschaft</div>
+            <div class="opt">○ kein Nähegrad</div>
+            <label style="margin-top:6px">Gültig ab <span class="co">2</span></label>
+            <div class="row" style="gap:6px;margin-top:3px"><span class="seg"><div>Tag</div><div class="on">Monat</div><div>Jahr</div><div>Jahreszeit</div><div>ungefähr</div><div>unbekannt</div></span></div>
+            <div class="inp" style="margin-top:6px">Juni 2022</div>
+          </div>
+          <div class="f"><button class="btn">Abbrechen</button><button class="btn primary">Speichern</button></div>
+        </div>
+        <div class="ann"><b>Annotation</b><ul>
+          <li>① genau eine Stufe (exklusiv, AC-043); Wechsel beendet alten Zeitraum, startet neuen (AC-044), Historie bleibt.</li>
+          <li>② Präzisions-Umschalter steuert das Eingabefeld (VAR-06); kein erfundener Tag.</li>
+          <li><b>Gesperrt</b>, wenn Romantik aktiv → siehe SCR-046.</li>
+        </ul></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="row">
+    <!-- SCR-043 Romantik beginnen -->
+    <section class="screen grow" style="min-width:430px">
+      <header><h2>SCR-043 · Romantische Beziehung beginnen</h2><span class="tag">FEAT-024 · FLOW-11 · AC-048</span></header>
+      <div class="body">
+        <div class="modal">
+          <div class="h">Beziehung beginnen: Mara &amp; Aylin</div>
+          <div class="c">
+            <label>Startzeitpunkt</label><div class="inp" style="margin:3px 0 10px">15.04.2023</div>
+            <div class="note warn"><b>Vorschau ① – endet automatisch:</b><br>• Nähegrad „Enge Freundschaft" wird beendet (15.04.2023)<br>• „Freundschaft Plus" wird beendet (15.04.2023)</div>
+            <div class="note info" style="margin-top:8px">Parallele Kontexte (Cosplay, Business) bleiben bestehen.</div>
+          </div>
+          <div class="f"><button class="btn">Abbrechen</button><button class="btn primary">Bestätigen</button></div>
+        </div>
+        <div class="ann"><b>Annotation</b><ul>
+          <li>① Pflicht-Vorschau zeigt, welche Status enden (Regeln 07, AC-048) — verhindert versehentliche Datenwirkung.</li>
+        </ul></div>
+      </div>
+    </section>
+
+    <!-- SCR-044 Romantik beenden -->
+    <section class="screen grow" style="min-width:430px">
+      <header><h2>SCR-044 · Beziehung beenden + Folgestatus</h2><span class="tag">FEAT-025 · FLOW-12 · AC-050/051</span></header>
+      <div class="body">
+        <div class="modal">
+          <div class="h">Beziehung beenden: Mara &amp; Aylin</div>
+          <div class="c">
+            <label>Endzeitpunkt</label><div class="inp" style="margin:3px 0 10px">02.02.2024</div>
+            <label>Welcher Nähegrad gilt danach? <span class="co">1</span> (Pflicht)</label>
+            <div class="opt" style="margin-top:4px">○ Bekanntschaft</div>
+            <div class="opt sel">◉ Freundschaft</div>
+            <div class="opt">○ Enge Freundschaft</div>
+            <div class="opt">○ kein Nähegrad</div>
+            <label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input type="checkbox" checked> <span class="co">2</span> „Ex-Partner/in" aktivieren (parallel)</label>
+          </div>
+          <div class="f"><button class="btn">Abbrechen</button><button class="btn primary">Beenden</button></div>
+        </div>
+        <div class="ann"><b>Annotation</b><ul>
+          <li>① Folge-Nähegrad ist Pflicht — ohne Auswahl kein Speichern (AC-050, E-ROM-END-INCOMPLETE).</li>
+          <li>② „Ex-Partner/in" optional, läuft parallel zum Folge-Nähegrad ab Enddatum (AC-051).</li>
+        </ul></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="row">
+    <!-- SCR-045 Freundschaft Plus -->
+    <section class="screen grow" style="min-width:380px">
+      <header><h2>SCR-045 · Freundschaft Plus beginnen</h2><span class="tag">FEAT-023 · FLOW-09 · AC-046/047</span></header>
+      <div class="body">
+        <div class="modal">
+          <div class="h">Freundschaft Plus: Mara &amp; Aylin</div>
+          <div class="c">
+            <div class="note info">Läuft <b>parallel</b> zum Nähegrad. Einzelne Kontakte werden separat als Ereignis „Sex" erfasst und ändern den Status nicht.</div>
+            <label style="margin-top:8px">Beginn</label><div class="inp" style="margin-top:3px">September 2022 (Monat)</div>
+          </div>
+          <div class="f"><button class="btn">Abbrechen</button><button class="btn primary">Starten</button></div>
+        </div>
+        <div class="ann"><b>Annotation</b><ul><li>Bei aktiver Romantik gesperrt (AC-047, E-FP-ROM).</li></ul></div>
+      </div>
+    </section>
+
+    <!-- SCR-046 Konflikt -->
+    <section class="screen grow" style="min-width:380px">
+      <header><h2>SCR-046 · Konflikt-/Validierungsdialog</h2><span class="tag">Regeln 07 · E-NG-ROM / E-PERIOD-OVERLAP / E-TIME-ORDER</span></header>
+      <div class="body">
+        <div class="modal">
+          <div class="h">Aktion nicht möglich</div>
+          <div class="c">
+            <div class="note warn"><span class="co" style="background:var(--warn)">!</span><b>Nähegrad während Romantik nicht möglich.</b><br>Beende zuerst die romantische Beziehung (SCR-044), dann ist ein Nähegrad wieder wählbar.</div>
+            <ul class="muted" style="font-size:12px;margin:10px 0 0;padding-left:18px">
+              <li>E-NG-ROM: Nähegrad bei aktiver Romantik</li>
+              <li>E-PERIOD-OVERLAP: überlappender exklusiver Zeitraum → vorigen beenden</li>
+              <li>E-TIME-ORDER: Ende vor Beginn → Inline-Fehler am Datum</li>
+            </ul>
+          </div>
+          <div class="f"><button class="btn">Verstanden</button><button class="btn primary">Beziehung beenden…</button></div>
+        </div>
+        <div class="ann"><b>Annotation</b><ul>
+          <li>Regelverstöße werden <b>vor</b> dem Speichern erklärt; betroffene Aktion ist deaktiviert, mit Lösungsweg.</li>
+        </ul></div>
+      </div>
+    </section>
+  </div>
+
+  <p class="legend">Nächster Block: 06 Ereignisse &amp; Timeline.</p>
+</div>
+</body>
+</html>

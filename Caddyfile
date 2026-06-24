@@ -1,0 +1,18 @@
+# ponytail: auto-HTTPS via Let's Encrypt. Domain + Email anpassen.
+relatable.example.com {
+	encode zstd gzip
+
+	# ponytail: rate-limit deferred — braucht caddy-ratelimit-Plugin (Custom-Build).
+	# Aktuell keine Brute-Force-Bedarf: MCP-Token ist 32-Byte-Hex (nicht raten),
+	# Login durch Argon2id teuer. Bei Bedarf: app-seitiges Rate-Limit in hooks.server.ts.
+
+	reverse_proxy relatable:3000
+
+	log {
+		output file /data/access.log {
+			roll_size 10mb
+			roll_keep 5
+		}
+		format json
+	}
+}

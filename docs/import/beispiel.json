@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "persons": [
+    {
+      "ref": "mara",
+      "name": "Mara Vogt",
+      "dateOfBirth": "1995-03-10",
+      "gender": "Weiblich",
+      "city": "Berlin",
+      "notes": "Über eine Convention kennengelernt.",
+      "socialAccounts": [
+        { "platform": "Instagram", "handle": "@mara.v", "url": "https://instagram.com/mara.v" }
+      ]
+    },
+    {
+      "ref": "aylin",
+      "name": "Aylin Kaya",
+      "gender": "Weiblich",
+      "city": "Hamburg"
+    },
+    {
+      "ref": "jonas",
+      "name": "Jonas Reich",
+      "gender": "Männlich",
+      "city": "Leipzig"
+    }
+  ],
+  "connections": [
+    {
+      "personA": "mara",
+      "personB": "aylin",
+      "periods": [
+        { "type": "Bekanntschaft", "from": { "kind": "season", "text": "Sommer 2022" }, "to": "2022-06" },
+        { "type": "Freundschaft", "from": "2022-06", "to": "2023-06" },
+        { "type": "Enge Freundschaft", "from": "2023-06" }
+      ],
+      "journal": [
+        { "title": "Tiefes Gespräch", "at": "2023-03" }
+      ]
+    },
+    {
+      "personA": "mara",
+      "personB": "jonas",
+      "periods": [
+        { "type": "Romantik", "from": "2023-04-15", "note": "Seit dem Festival zusammen." }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "Festival Wacken",
+      "type": "Konzert/Festival",
+      "at": "2023-08",
+      "city": "Hamburg",
+      "participants": ["mara", "aylin", "jonas"]
+    },
+    {
+      "name": "Intimer Abend",
+      "type": "Sex",
+      "at": "2023-10-12",
+      "city": "Berlin",
+      "participants": ["mara", "jonas"]
+    }
+  ]
+}

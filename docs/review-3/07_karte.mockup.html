@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RelaTable – Review 3 · Block 7: Karte</title>
+<style>
+  :root{--ink:#2b2b2b;--mut:#777;--line:#bbb;--bg:#f4f4f5;--card:#fff;--rail:#e7e7ea;--accent:#555;--p:#3a6ea5;--e:#b06a2c}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,Segoe UI,Roboto,sans-serif}
+  h1{font-size:20px;margin:0 0 4px}h2{font-size:15px;margin:0}
+  .wrap{max-width:1180px;margin:0 auto;padding:24px}.lead{color:var(--mut);margin:0 0 18px}
+  .screen{background:var(--card);border:1px solid var(--line);border-radius:10px;margin:0 0 26px;overflow:hidden}
+  .screen>header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;background:#ececef;border-bottom:1px solid var(--line)}
+  .tag{font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:20px;padding:2px 9px;background:#fff}
+  .body{padding:16px}.muted{color:var(--mut)}
+  .btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--accent);border-radius:7px;padding:6px 11px;background:#fff;font-size:13px}
+  .co{display:inline-flex;width:18px;height:18px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;align-items:center;justify-content:center;margin-right:5px}
+  .ann{margin:12px 0 0;padding:12px 14px;background:#fafafa;border:1px solid var(--line);border-radius:8px;font-size:13px}.ann ul{margin:6px 0 0;padding-left:18px}
+  .row{display:flex;gap:16px;flex-wrap:wrap}.grow{flex:1;min-width:0}
+  .app{display:flex;min-height:430px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .rail{width:54px;background:var(--rail);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:6px;flex:none}
+  .rail .i{width:24px;height:24px;border:1px solid #aaa;border-radius:6px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666}.rail .i.on{background:#d6d6db}
+  .content{flex:1;display:flex;flex-direction:column;min-width:0}
+  .topbar{height:46px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 14px;background:#f7f7f8}
+  .map{flex:1;position:relative;background:
+    radial-gradient(circle at 30% 40%, #eaf0ea, #e3ebe8),
+    repeating-linear-gradient(0deg,#dfe7e3,#dfe7e3 1px,transparent 1px,transparent 28px),
+    repeating-linear-gradient(90deg,#dfe7e3,#dfe7e3 1px,transparent 1px,transparent 28px);}
+  .pin{position:absolute;width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+  .pin.p{background:var(--p)}.pin.e{background:var(--e)}
+  .cluster{position:absolute;width:38px;height:38px;border-radius:50%;background:rgba(58,110,165,.85);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;border:2px solid #fff}
+  .panel{position:absolute;border:1px solid var(--line);border-radius:9px;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.14);padding:10px;font-size:12px}
+  .filter{position:absolute;left:10px;top:10px;width:170px}
+  .sw{display:flex;align-items:center;justify-content:space-between;margin:4px 0;font-size:12px}
+  .toggle{width:34px;height:18px;border-radius:20px;background:#cfcfd6;position:relative}.toggle.on{background:#3a6ea5}.toggle::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:.2s}.toggle.on::after{left:18px}
+  .legend{font-size:12px;color:var(--mut);margin:10px 0 22px}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:middle;margin-right:5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>RelaTable — Review 3 · Block 7: Karte</h1>
+  <p class="lead">SCR-060/061. Getrennte Layer Personen/Ereignisse (VAR-09 Filterpanel), Clustering, Stadt/Region genügt. Karte: <b>Google Maps</b> bevorzugt, Fallback OSM/Leaflet (DEC-025). Features FEAT-070…074 · FLOW-24 · AC-090..093.</p>
+  <p class="legend"><span class="dot" style="background:#3a6ea5"></span>Personen &nbsp; <span class="dot" style="background:#b06a2c"></span>Ereignisse · ① ② ③ Callouts.</p>
+
+  <!-- SCR-060 Desktop -->
+  <section class="screen">
+    <header><h2>SCR-060 · Karte mit Layern, Cluster &amp; Marker-Detail</h2><span class="tag">Desktop · AC-090..093</span></header>
+    <div class="body">
+      <div class="app">
+        <div class="rail"><div class="i">◕</div><div class="i">☺</div><div class="i">★</div><div class="i">≣</div><div class="i on">⌖</div><div class="i">∞</div><div class="i">⚙</div></div>
+        <div class="content">
+          <div class="topbar"><b>Karte</b><span style="flex:1"></span><span class="muted" style="font-size:12px">Quelle: Google Maps</span></div>
+          <div class="map">
+            <div class="filter panel">
+              <b>Layer ①</b>
+              <div class="sw"><span><span class="dot" style="background:#3a6ea5"></span>Personen</span><span class="toggle on"></span></div>
+              <div class="sw"><span><span class="dot" style="background:#b06a2c"></span>Ereignisse</span><span class="toggle on"></span></div>
+              <hr style="border:none;border-top:1px solid var(--line);margin:6px 0">
+              <b>Filter</b>
+              <div class="sw"><span>Zeitraum</span><span class="muted">▾</span></div>
+              <div class="sw"><span>Ereignistyp</span><span class="muted">▾</span></div>
+              <div class="sw"><span>⊙ Sensible</span><span class="toggle"></span></div>
+            </div>
+            <div class="pin p" style="left:300px;top:120px"></div>
+            <div class="pin e" style="left:360px;top:200px"></div>
+            <div class="pin p" style="left:470px;top:160px"></div>
+            <div class="cluster" style="left:210px;top:250px">7 ②</div>
+            <div class="panel" style="right:14px;top:90px;width:180px"><b>Mara Vogt ③</b><div class="muted">Berlin (Stadt)</div><div style="margin-top:6px"><span class="btn" style="padding:3px 8px">Profil ↗</span></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="ann"><b>Annotation SCR-060</b><ul>
+        <li>① getrennte Layer Personen/Ereignisse, einzeln schaltbar (AC-090).</li>
+        <li>② Cluster mit Anzahl; Klick zoomt/öffnet Liste; überlappende erreichbar (AC-091).</li>
+        <li>③ Marker-Detail: Name/Bild + Link Profil/Event; nie präziser als gespeichert (AC-092); Default Stadt/Region.</li>
+        <li>Sensible standardmäßig aus (DEC-027). <b>Offen:</b> Heatmap später (Out of V1).</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- SCR-061 mobile + missing -->
+  <section class="screen">
+    <header><h2>SCR-061 · Mobile + fehlende Standorte</h2><span class="tag">390px · AC-093</span></header>
+    <div class="body">
+      <div class="row" style="align-items:flex-start">
+        <div style="width:240px;border:8px solid #ddd;border-radius:22px;overflow:hidden">
+          <div class="topbar" style="height:38px"><b style="font-size:13px">Karte</b><span style="flex:1"></span><span class="btn" style="padding:2px 7px">Filter</span></div>
+          <div class="map" style="height:330px">
+            <div class="pin p" style="left:90px;top:90px"></div><div class="pin e" style="left:150px;top:160px"></div>
+            <div class="cluster" style="left:60px;top:200px;width:32px;height:32px;font-size:12px">4</div>
+          </div>
+          <div style="height:46px;border-top:1px solid var(--line);display:flex;background:#f7f7f8;font-size:9px;color:#666"><div style="flex:1;text-align:center;padding-top:8px">Graph</div><div style="flex:1;text-align:center;padding-top:8px">Personen</div><div style="flex:1;text-align:center;padding-top:8px">Events</div><div style="flex:1;text-align:center;padding-top:8px;font-weight:600">Karte</div><div style="flex:1;text-align:center;padding-top:8px">Mehr</div></div>
+        </div>
+        <div class="grow" style="min-width:280px">
+          <div style="border:1px dashed var(--line);border-radius:8px;padding:12px;background:#fafafa">
+            <b>Ohne Standort ①</b>
+            <div class="muted" style="font-size:12px;margin:6px 0">Diese werden <u>nicht</u> falsch verortet, sondern separat gelistet:</div>
+            <div class="muted" style="font-size:13px">• 12 Personen ohne Ort<br>• 3 Ereignisse ohne Ort</div>
+          </div>
+          <div class="ann" style="margin-top:10px"><b>Annotation SCR-061</b><ul>
+            <li>Mobil: Filter als Bottom-Sheet (VAR-09); Touch-Zoom/Pan.</li>
+            <li>① fehlende Standorte separat statt Falschverortung (AC-093).</li>
+          </ul></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <p class="legend">Nächster Block: 08 Vernetzungs-Finder.</p>
+</div>
+</body>
+</html>

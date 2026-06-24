@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens mirror docs/review-3/*.mockup.html (light) with a dark variant. */
+:root {
+	--c-ink: 43 43 43;
+	--c-mut: 119 119 119;
+	--c-line: 187 187 187;
+	--c-bg: 244 244 245;
+	--c-card: 255 255 255;
+	--c-rail: 231 231 234;
+	--c-accent: 85 85 85;
+	--c-warn: 179 84 30;
+	--c-ok: 47 122 67;
+}
+
+:root.dark {
+	--c-ink: 228 228 231;
+	--c-mut: 156 156 163;
+	--c-line: 63 63 70;
+	--c-bg: 24 24 27;
+	--c-card: 35 35 39;
+	--c-rail: 30 30 34;
+	--c-accent: 161 161 170;
+	--c-warn: 224 138 76;
+	--c-ok: 110 196 138;
+}
+
+html,
+body {
+	height: 100%;
+}
+
+body {
+	@apply bg-bg text-ink antialiased;
+	font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Relationship-type edge/legend colors (graph + pair). Shared so legend and edges match. */
+:root {
+	--rel-bekanntschaft: #888888;
+	--rel-freundschaft: #33aa77;
+	--rel-enge-freundschaft: #4466aa;
+	--rel-romantik: #cc8844;
+	--rel-fplus: #9a6fb0;
+	--rel-ex: #b06a6a;
+	--rel-kontext: #7a8a99;
+}
+
+@layer components {
+	.btn {
+		@apply inline-flex items-center gap-1.5 rounded-md border border-accent bg-card px-3 py-1.5 text-[13px] text-ink transition-colors hover:bg-bg disabled:opacity-50 disabled:cursor-not-allowed;
+	}
+	.btn-primary {
+		@apply border-accent bg-accent text-white hover:opacity-90;
+	}
+	.btn-warn {
+		@apply border-warn text-warn hover:bg-warn/10;
+	}
+	.btn-sm {
+		@apply px-2 py-1 text-xs;
+	}
+	.inp {
+		@apply w-full rounded-md border border-line bg-card px-2.5 py-2 text-ink placeholder:text-mut focus:outline-none focus:ring-2 focus:ring-accent/40;
+	}
+	.card {
+		@apply rounded-lg border border-line bg-card;
+	}
+	.chip {
+		@apply inline-flex items-center gap-1.5 rounded-full border border-line bg-card px-2.5 py-1 text-xs text-mut;
+	}
+	.label {
+		@apply block text-xs text-mut;
+	}
+	.avatar {
+		@apply flex flex-none items-center justify-center rounded-full border border-line bg-rail text-mut;
+	}
+}

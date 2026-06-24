@@ -1,0 +1,38 @@
+services:
+  relatable:
+    build: .
+    image: relatable:latest
+    container_name: relatable
+    restart: unless-stopped
+    # ponytail: kein Port-Binding — Traefik routet über shared Docker-Netzwerk.
+    expose:
+      - '3000'
+    env_file:
+      - .env
+    environment:
+      ORIGIN: 'https://srv1672361.hstgr.cloud'
+      PUBLIC_MAP_PROVIDER: 'leaflet'
+    volumes:
+      - relatable-data:/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.relatable.rule=Host(`srv1672361.hstgr.cloud`)
+      - traefik.http.routers.relatable.entrypoints=websecure
+      - traefik.http.routers.relatable.tls.certresolver=letsencrypt
+      - traefik.http.services.relatable.loadbalancer.server.port=3000
+
+volumes:
+  relatable-data:

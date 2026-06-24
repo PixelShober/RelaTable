@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RelaTable – Review 3 · Block 1: Navigation & Shell</title>
+<style>
+  :root{ --ink:#2b2b2b; --mut:#777; --line:#bbb; --bg:#f4f4f5; --card:#fff; --rail:#e7e7ea; --accent:#555; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,Segoe UI,Roboto,sans-serif}
+  h1{font-size:20px;margin:0 0 4px}
+  h2{font-size:15px;margin:0}
+  .wrap{max-width:1180px;margin:0 auto;padding:24px}
+  .lead{color:var(--mut);margin:0 0 20px}
+  .screen{background:var(--card);border:1px solid var(--line);border-radius:10px;margin:0 0 28px;overflow:hidden}
+  .screen > header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;background:#ececef;border-bottom:1px solid var(--line)}
+  .tag{font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:20px;padding:2px 9px;background:#fff}
+  .body{padding:16px}
+  .frame{border:1px dashed var(--line);border-radius:8px;background:#fafafa;position:relative}
+  .ph{background:repeating-linear-gradient(45deg,#eee,#eee 6px,#f6f6f6 6px,#f6f6f6 12px);border:1px dashed var(--line);border-radius:6px;color:#999;display:flex;align-items:center;justify-content:center;text-align:center}
+  .muted{color:var(--mut)}
+  .btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--accent);border-radius:7px;padding:7px 12px;background:#fff;color:var(--ink);font-size:13px}
+  .btn.primary{background:var(--accent);color:#fff}
+  .inp{border:1px solid var(--line);border-radius:7px;background:#fff;padding:9px 10px;color:#999}
+  .co{display:inline-flex;width:18px;height:18px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;align-items:center;justify-content:center;vertical-align:middle;margin-right:5px}
+  .ann{margin:12px 0 0;padding:12px 14px;background:#fafafa;border:1px solid var(--line);border-radius:8px;font-size:13px}
+  .ann b{font-weight:600}
+  .ann ul{margin:6px 0 0;padding-left:18px}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  /* App shell */
+  .app{display:flex;height:420px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .rail{width:56px;background:var(--rail);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:6px;flex:none}
+  .rail.expanded{width:190px;align-items:stretch;padding:10px 8px}
+  .nav{display:flex;align-items:center;gap:10px;height:38px;border-radius:7px;color:#444;padding:0 9px}
+  .nav .ico{width:24px;height:24px;border:1px solid #aaa;border-radius:6px;background:#fff;flex:none;display:flex;align-items:center;justify-content:center;font-size:13px}
+  .nav .lbl{white-space:nowrap}
+  .rail:not(.expanded) .lbl{display:none}
+  .nav.active{background:#d6d6db;font-weight:600}
+  .content{flex:1;display:flex;flex-direction:column}
+  .topbar{height:46px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:0 14px;background:#f7f7f8}
+  .canvas{flex:1;padding:14px}
+  /* phone */
+  .phone{width:300px;border:10px solid #ddd;border-radius:26px;overflow:hidden;background:#fff}
+  .phone .scr{height:520px;display:flex;flex-direction:column}
+  .phone .tabbar{height:58px;border-top:1px solid var(--line);display:flex;background:#f7f7f8}
+  .phone .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px;color:#666}
+  .phone .tab .ico{width:22px;height:22px;border:1px solid #aaa;border-radius:6px;background:#fff}
+  .phone .tab.active{color:#111;font-weight:600}
+  .phone .tab.active .ico{background:#d6d6db}
+  .legend{font-size:12px;color:var(--mut);margin:10px 0 24px}
+  code{background:#eee;padding:1px 5px;border-radius:4px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>RelaTable — Review 3 · Block 1: Navigation &amp; Shell</h1>
+  <p class="lead">Low-Fidelity. Konsistente Shell: einklappbare <b>Icon-Rail</b> links (Hover → ausgeklappt, VAR-01=C), mobile <b>Bottom-Tab-Bar</b> (VAR-02=A). Screens: SCR-001…004.</p>
+  <p class="legend">① ② ③ = Callouts · gestreifte Flächen = Platzhalter/Bilder · graue Felder = Eingaben.</p>
+
+  <!-- SCR-001 -->
+  <section class="screen">
+    <header><h2>SCR-001 · First-Run-Setup</h2><span class="tag">Desktop 1440 · FEAT-001 · FLOW-01</span></header>
+    <div class="body">
+      <div class="frame" style="max-width:520px;margin:0 auto;padding:22px">
+        <div style="text-align:center;margin-bottom:14px"><span class="co">1</span><b>RelaTable einrichten</b><div class="muted" style="font-size:12px">Einmalige Ersteinrichtung – es wird genau ein Konto angelegt.</div></div>
+        <label class="muted" style="font-size:12px">Anzeigename</label>
+        <div class="inp" style="margin:4px 0 12px">Dein Name</div>
+        <label class="muted" style="font-size:12px">Passwort <span class="co">2</span></label>
+        <div class="inp" style="margin:4px 0 4px">••••••••</div>
+        <div class="muted" style="font-size:11px;margin-bottom:4px">Stärke: ▓▓▓▓░</div>
+        <div class="muted" style="font-size:11px;margin-bottom:10px;line-height:1.4">Regel: ≥ 16 Zeichen · Groß- &amp; Kleinbuchstaben · ≥ 1 Zahl · ≥ 1 Sonderzeichen<br>✓ 16+ &nbsp; ✓ A-Z &nbsp; ✓ a-z &nbsp; ✓ 0-9 &nbsp; ✗ Sonderzeichen</div>
+        <label class="muted" style="font-size:12px">Passwort wiederholen</label>
+        <div class="inp" style="margin:4px 0 16px">••••••••</div>
+        <button class="btn primary" style="width:100%;justify-content:center"><span class="co" style="background:#fff;color:#555">3</span>Konto erstellen &amp; starten</button>
+      </div>
+      <div class="ann">
+        <b>Annotation SCR-001</b>
+        <ul>
+          <li><b>Zweck:</b> einmalige Einrichtung des einzigen Eigentümer-Kontos.</li>
+          <li><b>Primär:</b> ③ Konto erstellen → automatisch eingeloggt → Graph.</li>
+          <li><b>Sekundär:</b> –</li>
+          <li><b>Zustände:</b> ② Passwortstärke live; Fehler bei zu schwach/ungleich; nach Anlage gesperrt (Redirect /login).</li>
+          <li><b>Entschieden (DEC-032):</b> Passwort-Policy = <b>≥ 16 Zeichen, Groß- &amp; Kleinbuchstaben, ≥ 1 Zahl, ≥ 1 Sonderzeichen</b>; Checkliste live geprüft, „Erstellen" erst aktiv wenn erfüllt.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCR-002 -->
+  <section class="screen">
+    <header><h2>SCR-002 · Login</h2><span class="tag">Desktop 1440 · FEAT-002 · FLOW-02</span></header>
+    <div class="body">
+      <div class="frame" style="max-width:420px;margin:0 auto;padding:22px">
+        <div style="text-align:center;margin-bottom:14px"><b>RelaTable</b><div class="muted" style="font-size:12px">Anmelden</div></div>
+        <label class="muted" style="font-size:12px">Passwort <span class="co">1</span></label>
+        <div class="inp" style="margin:4px 0 8px">••••••••</div>
+        <div class="ph" style="height:30px;margin-bottom:10px;font-size:11px">② Fehlerzone: „Anmeldung fehlgeschlagen" (generisch)</div>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px;margin-bottom:12px"><input type="checkbox" checked> <span class="co">3</span> Angemeldet bleiben</label>
+        <button class="btn primary" style="width:100%;justify-content:center">Anmelden</button>
+      </div>
+      <div class="ann">
+        <b>Annotation SCR-002</b>
+        <ul>
+          <li><b>Zweck:</b> Zugang zum geschützten Bereich (AC-010/011).</li>
+          <li><b>Primär:</b> ① Anmelden → Redirect auf gemerkte Zielroute.</li>
+          <li><b>Zustände:</b> ② generischer Fehler + Rate-Limit (kein User-Enum); abgelaufene Session → hierher.</li>
+          <li><b>Entschieden:</b> ③ „Angemeldet bleiben" = <b>ja</b> (länger gültige Session bei aktivierter Option; sonst kurze Session).</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCR-003 -->
+  <section class="screen">
+    <header><h2>SCR-003 · Hauptnavigation Desktop (Icon-Rail + Hover-Zustand)</h2><span class="tag">Desktop 1440 · FEAT-120 · VAR-01=C</span></header>
+    <div class="body">
+      <div class="row">
+        <div style="flex:1;min-width:380px">
+          <div class="muted" style="font-size:12px;margin-bottom:6px"><span class="co">1</span> Standard: schmale Icon-Rail (max. Platz für Inhalt)</div>
+          <div class="app">
+            <div class="rail">
+              <div class="nav active"><span class="ico">◕</span></div>
+              <div class="nav"><span class="ico">☺</span></div>
+              <div class="nav"><span class="ico">★</span></div>
+              <div class="nav"><span class="ico">≣</span></div>
+              <div class="nav"><span class="ico">⌖</span></div>
+              <div class="nav"><span class="ico">∞</span></div>
+              <div class="nav"><span class="ico">⚙</span></div>
+            </div>
+            <div class="content">
+              <div class="topbar"><b>Graph</b><span class="muted" style="font-size:12px">· aktiver Bereich</span></div>
+              <div class="canvas"><div class="ph" style="height:100%">Inhaltsbereich (z. B. Graph) — volle Breite</div></div>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1;min-width:380px">
+          <div class="muted" style="font-size:12px;margin-bottom:6px"><span class="co">2</span> Bei Maus-Hover: Rail gleitet aus, Labels erscheinen</div>
+          <div class="app">
+            <div class="rail expanded">
+              <div class="nav" style="justify-content:flex-end;height:26px"><span class="lbl" style="font-size:11px;color:#888">📌 anheften</span></div>
+              <div class="nav active"><span class="ico">◕</span><span class="lbl">Graph</span></div>
+              <div class="nav"><span class="ico">☺</span><span class="lbl">Personen</span></div>
+              <div class="nav"><span class="ico">★</span><span class="lbl">Ereignisse</span></div>
+              <div class="nav"><span class="ico">≣</span><span class="lbl">Timeline</span></div>
+              <div class="nav"><span class="ico">⌖</span><span class="lbl">Karte</span></div>
+              <div class="nav"><span class="ico">∞</span><span class="lbl">Finder</span></div>
+              <div class="nav"><span class="ico">⚙</span><span class="lbl">Einstellungen</span></div>
+            </div>
+            <div class="content">
+              <div class="topbar"><b>Graph</b></div>
+              <div class="canvas"><div class="ph" style="height:100%">Inhalt wird vom ausgeklappten Panel überlagert/verschoben</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ann">
+        <b>Annotation SCR-003</b>
+        <ul>
+          <li><b>Zweck:</b> globale Navigation zu Graph · Personen · Ereignisse · Timeline · Karte · Finder · Einstellungen.</li>
+          <li><b>Primär:</b> Bereich wechseln (Klick auf Icon/Label).</li>
+          <li><b>Interaktion:</b> ① schmale Rail = Default; ② Hover über Rail blendet Labels ein (gleitet aus), Verlassen klappt wieder ein; aktiver Bereich hervorgehoben; Icons mit Tooltip.</li>
+          <li><b>Zustände:</b> kollabiert / hover-expanded / <b>angeheftet</b> / aktiv; A11y: per Tastatur fokussierbar, Labels auch bei Fokus sichtbar (nicht nur Hover).</li>
+          <li><b>Entschieden:</b> 📌 <b>Pin hält die Rail dauerhaft ausgeklappt</b> (Zustand wird gespeichert).</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCR-004 -->
+  <section class="screen">
+    <header><h2>SCR-004 · Hauptnavigation Smartphone</h2><span class="tag">390 px · FEAT-120 · VAR-02=A · FLOW-20</span></header>
+    <div class="body">
+      <div class="row" style="align-items:flex-start">
+        <div class="phone">
+          <div class="scr">
+            <div class="topbar"><b>Graph</b></div>
+            <div class="canvas" style="flex:1"><div class="ph" style="height:100%">Inhalt (Vollbild)</div></div>
+            <div class="tabbar">
+              <div class="tab active"><span class="ico"></span>Graph</div>
+              <div class="tab"><span class="ico"></span>Personen</div>
+              <div class="tab"><span class="ico"></span>Ereignisse</div>
+              <div class="tab"><span class="ico"></span>Karte</div>
+              <div class="tab"><span class="ico"></span>Mehr</div>
+            </div>
+          </div>
+        </div>
+        <div class="ann" style="flex:1;min-width:300px;margin-top:0">
+          <b>Annotation SCR-004</b>
+          <ul>
+            <li><b>Zweck:</b> daumenfreundliche Kernnavigation mobil.</li>
+            <li><b>Primär:</b> 5 Tabs: Graph · Personen · Ereignisse · Karte · <b>Mehr</b>.</li>
+            <li><b>Sekundär:</b> „Mehr" öffnet Sheet mit Timeline · Finder · Import · Einstellungen · Theme.</li>
+            <li><b>Zustände:</b> aktiver Tab hervorgehoben; Touch-Ziele ≥44 px.</li>
+            <li><b>Entschieden:</b> Tabs bleiben Graph · Personen · Ereignisse · <b>Karte</b> · Mehr; Timeline bleibt unter „Mehr".</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <p class="legend">Nächste Blöcke: 02 Personen · 03 Graph · 04 Pair-Details · 05 Beziehungsdialoge · 06 Ereignisse/Timeline · 07 Karte · 08 Finder · 09 Import/Einstellungen.</p>
+</div>
+</body>
+</html>

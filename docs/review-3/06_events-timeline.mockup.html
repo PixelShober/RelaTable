@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RelaTable – Review 3 · Block 6: Ereignisse & Timeline</title>
+<style>
+  :root{--ink:#2b2b2b;--mut:#777;--line:#bbb;--bg:#f4f4f5;--card:#fff;--rail:#e7e7ea;--accent:#555}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,Segoe UI,Roboto,sans-serif}
+  h1{font-size:20px;margin:0 0 4px}h2{font-size:15px;margin:0}
+  .wrap{max-width:1180px;margin:0 auto;padding:24px}.lead{color:var(--mut);margin:0 0 18px}
+  .screen{background:var(--card);border:1px solid var(--line);border-radius:10px;margin:0 0 26px;overflow:hidden}
+  .screen>header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;background:#ececef;border-bottom:1px solid var(--line)}
+  .tag{font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:20px;padding:2px 9px;background:#fff}
+  .body{padding:16px}.muted{color:var(--mut)}
+  .btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--accent);border-radius:7px;padding:6px 11px;background:#fff;font-size:13px}
+  .btn.primary{background:var(--accent);color:#fff}
+  .co{display:inline-flex;width:18px;height:18px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;align-items:center;justify-content:center;margin-right:5px}
+  .ann{margin:12px 0 0;padding:12px 14px;background:#fafafa;border:1px solid var(--line);border-radius:8px;font-size:13px}.ann ul{margin:6px 0 0;padding-left:18px}
+  .row{display:flex;gap:16px;flex-wrap:wrap}.grow{flex:1;min-width:0}
+  .app{display:flex;min-height:430px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .rail{width:54px;background:var(--rail);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:6px;flex:none}
+  .rail .i{width:24px;height:24px;border:1px solid #aaa;border-radius:6px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666}.rail .i.on{background:#d6d6db}
+  .content{flex:1;display:flex;flex-direction:column;min-width:0}
+  .topbar{height:46px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 14px;background:#f7f7f8}
+  .canvas{flex:1;padding:14px}
+  .inp{border:1px solid var(--line);border-radius:7px;background:#fff;padding:8px 10px;color:#999}
+  label{font-size:12px;color:var(--mut)}
+  .chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:20px;padding:3px 10px;font-size:12px;background:#fff;color:#555}
+  .ev{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:9px;margin-bottom:8px;background:#fff}
+  .ic{width:30px;height:30px;border:1px solid var(--line);border-radius:7px;background:#f0f0f3;display:flex;align-items:center;justify-content:center;font-size:13px;flex:none}
+  .tl{border-left:2px solid var(--line);margin-left:8px;padding-left:14px}
+  .grp{font-weight:600;margin:10px 0 6px;font-size:13px}
+  .it{position:relative;margin-bottom:9px}.it::before{content:"";position:absolute;left:-21px;top:5px;width:9px;height:9px;border-radius:50%;background:#888}
+  .modal{border:1px solid var(--line);border-radius:10px;max-width:470px;background:#fff;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+  .modal .h{padding:12px 14px;border-bottom:1px solid var(--line);font-weight:600}.modal .c{padding:14px}.modal .f{padding:12px 14px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;font-size:12px}.seg div{padding:5px 9px;border-right:1px solid var(--line)}.seg div:last-child{border-right:none}.seg .on{background:#d6d6db;font-weight:600}
+  .tagp{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:20px;padding:2px 8px;font-size:11px;background:#fff;margin:2px 2px 0 0}
+  .legend{font-size:12px;color:var(--mut);margin:10px 0 22px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>RelaTable — Review 3 · Block 6: Ereignisse &amp; Timeline</h1>
+  <p class="lead">SCR-050…053. Ereignisse (≥1 Teilnehmer), Timeline als gruppierte Chronik (VAR-07=A). Unscharfe Daten als eigene Gruppen; sensible verborgen (DEC-027). Features FEAT-040…046 · Flows FLOW-14..16 · AC-060..066.</p>
+  <p class="legend">① ② ③ = Callouts.</p>
+
+  <!-- SCR-050 Liste -->
+  <section class="screen">
+    <header><h2>SCR-050 · Ereignisliste</h2><span class="tag">FEAT-040 · AC-060</span></header>
+    <div class="body">
+      <div class="app">
+        <div class="rail"><div class="i">◕</div><div class="i">☺</div><div class="i on">★</div><div class="i">≣</div><div class="i">⌖</div><div class="i">∞</div><div class="i">⚙</div></div>
+        <div class="content">
+          <div class="topbar"><b>Ereignisse</b><span style="flex:1"></span><span class="chip">⊙ Sensible: aus</span><button class="btn primary">+ Neues Ereignis</button></div>
+          <div class="canvas">
+            <div class="row" style="gap:6px;margin-bottom:10px"><div class="inp grow">Suche…</div><span class="chip">Typ ▾</span><span class="chip">Zeitraum ▾</span></div>
+            <div class="ev"><div class="ic">🏖</div><div class="grow"><b>Wochenendtrip</b><div class="muted" style="font-size:12px">Mai 2023 · Ostsee · Mara, Aylin</div></div><span class="muted">›</span></div>
+            <div class="ev"><div class="ic">🎵</div><div class="grow"><b>Festival Wacken</b><div class="muted" style="font-size:12px">08/2023 · Wacken · Mara +4</div></div><span class="muted">›</span></div>
+            <div class="ev" style="opacity:.7"><div class="ic">🔒</div><div class="grow"><b>Sensibles Ereignis verborgen</b><div class="muted" style="font-size:12px">Toggle „Sensible Inhalte" aktivieren zum Anzeigen</div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="ann"><b>Annotation SCR-050</b><ul>
+        <li><b>Primär:</b> Ereignis öffnen/anlegen. <b>Sekundär:</b> Suche, Filter Typ/Zeitraum.</li>
+        <li><b>Sensible (DEC-027):</b> standardmäßig verborgen, nur per Toggle sichtbar.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- SCR-051 anlegen -->
+  <section class="screen">
+    <header><h2>SCR-051 · Ereignis anlegen (Teilnehmer, Ort, unscharfes Datum)</h2><span class="tag">FEAT-040/041/042 · FLOW-14 · AC-060..062/066</span></header>
+    <div class="body">
+      <div class="modal" style="max-width:520px">
+        <div class="h">Neues Ereignis</div>
+        <div class="c">
+          <div class="row" style="gap:10px">
+            <div class="grow"><label>Name</label><div class="inp" style="margin-top:3px">z. B. Wochenendtrip</div></div>
+            <div class="grow"><label>Typ <span class="co">1</span></label><div class="inp" style="margin-top:3px">Urlaub ▾ (Party/Konzert/Convention/Sex/Generisch)</div></div>
+          </div>
+          <label style="margin-top:10px;display:block">Datum <span class="co">2</span></label>
+          <span class="seg" style="margin-top:3px"><div>Tag</div><div class="on">Monat</div><div>Jahr</div><div>Jahreszeit</div><div>ungefähr</div><div>unbekannt</div></span>
+          <div class="inp" style="margin-top:6px">Mai 2023</div>
+          <label style="margin-top:10px;display:block">Teilnehmer (mind. 1) <span class="co">3</span></label>
+          <div style="margin-top:3px"><span class="tagp">Mara ✕</span><span class="tagp">Aylin ✕</span><span class="tagp" style="border-style:dashed">+ Person</span></div>
+          <label style="margin-top:10px;display:block">Ort (optional)</label><div class="inp" style="margin-top:3px">Ostsee (Stadt/Region genügt)</div>
+        </div>
+        <div class="f"><button class="btn">Abbrechen</button><button class="btn primary">Speichern</button></div>
+      </div>
+      <div class="ann"><b>Annotation SCR-051</b><ul>
+        <li>① Typ inkl. `Sex` (sensibel, ändert Beziehungsstatus nicht, AC-062). ② Präzisions-Datum (VAR-06, AC-066). ③ mind. 1 Teilnehmer, sonst blockiert (AC-060).</li>
+        <li>Erscheint danach in allen Teilnehmerprofilen &amp; Timelines (AC-061).</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- SCR-052 Timeline -->
+  <section class="screen">
+    <header><h2>SCR-052 · Timeline (global / Person / Pair)</h2><span class="tag">FEAT-044/045 · FLOW-15/16 · AC-065/066</span></header>
+    <div class="body">
+      <div class="app">
+        <div class="rail"><div class="i">◕</div><div class="i">☺</div><div class="i">★</div><div class="i on">≣</div><div class="i">⌖</div><div class="i">∞</div><div class="i">⚙</div></div>
+        <div class="content">
+          <div class="topbar"><b>Timeline</b><span class="seg" style="margin-left:6px"><div class="on">Global</div><div>Person</div><div>Paar</div></span><span style="flex:1"></span><span class="chip">⊙ Sensible: aus</span></div>
+          <div class="canvas">
+            <div class="row" style="gap:6px;margin-bottom:6px"><span class="chip">Zeitraum ▾</span><span class="chip">Ereignistyp ▾</span><span class="chip">Person ▾</span></div>
+            <div class="grp">2023</div>
+            <div class="tl">
+              <div class="it"><b>Festival Wacken</b> · 08/2023 <span class="muted">· Event</span></div>
+              <div class="it">Hochstufung → Enge Freundschaft · 06/2023 <span class="muted">· Beziehung</span></div>
+              <div class="it"><b>Wochenendtrip</b> · 05/2023</div>
+            </div>
+            <div class="grp">Unscharf datiert <span class="co">1</span></div>
+            <div class="tl">
+              <div class="it">Kennengelernt · „Sommer 2022" <span class="muted">(Jahreszeit)</span></div>
+              <div class="it">Konzertbesuch · „ungefähr Anfang 2023"</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ann"><b>Annotation SCR-052</b><ul>
+        <li><b>Darstellung:</b> gruppierte Chronik nach Jahr/Monat (VAR-07); Events <i>und</i> Beziehungswechsel als Projektion (kein dupliziertes Daten).</li>
+        <li>① Unscharfe Daten als <b>eigene Gruppe</b> („Sommer 2022"), nie als exakter Tag (AC-066).</li>
+        <li><b>Umschalter</b> Global/Person/Paar; Filter Zeitraum/Typ/Person; sensible verborgen.</li>
+        <li><b>Offen:</b> sollen Beziehungswechsel in der globalen Timeline standardmäßig mitlaufen oder optional?</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <p class="legend">Nächster Block: 07 Karte (Layer, Cluster, Marker-Detail, fehlende Orte, mobil).</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,209 @@
+// Relationship domain service (docs/review-1/07_beziehungsregeln.md).
+// Pure + framework-free: no Prisma, no DB. Drives graph edge colors, closeness
+// sorting, current-type resolution, and the V-1..V-8 transition validations.
+// The guided dialogs (Block 5) are NOT built in V1, but these rules are the
+// single source of truth and are unit-tested.
+
+export const CLOSENESS_RANK: Record<string, number> = {
+	Bekanntschaft: 1,
+	Freundschaft: 2,
+	'Enge Freundschaft': 3
+};
+
+export const TYPE_COLORS: Record<string, string> = {
+	Bekanntschaft: '#888888',
+	Freundschaft: '#33aa77',
+	'Enge Freundschaft': '#4466aa',
+	Romantik: '#cc8844',
+	'Freundschaft Plus': '#9a6fb0',
+	'Ex-Partner/in': '#b06a6a'
+};
+
+// Display priority for "current type" (graph edge color, VAR-04=A) — most
+// significant active type wins.
+const TYPE_PRIORITY: Record<string, number> = {
+	Romantik: 100,
+	'Enge Freundschaft': 80,
+	Freundschaft: 70,
+	Bekanntschaft: 60,
+	'Ex-Partner/in': 50,
+	'Freundschaft Plus': 40
+};
+
+export interface RelType {
+	id: number;
+	name: string;
+	categoryName: string; // Naehegrad|Kontext|Romantik|Status
+	rank: number | null;
+	isClosenessLevel: boolean;
+	isContinuous: boolean;
+}
+
+export interface Period {
+	id?: number;
+	relationshipTypeId: number;
+	validFrom: Date | null;
+	validTo: Date | null; // null = active
+}
+
+export type RuleError =
+	| 'E-NG-ROM'
+	| 'E-NG-DUP'
+	| 'E-FP-ROM'
+	| 'E-ROM-END-INCOMPLETE'
+	| 'E-PERIOD-OVERLAP'
+	| 'E-TIME-ORDER';
+
+export interface TransitionResult {
+	allowed: boolean;
+	error?: RuleError;
+	/** Type ids whose active period would be ended as a side effect. */
+	ends: number[];
+	message?: string;
+}
+
+/** Canonical unordered pair: low < high (C-MODEL-1/2). Throws on self-edge. */
+export function canonicalPair(a: number, b: number): { low: number; high: number } {
+	if (a === b) throw new Error('E-SELF-EDGE: a connection needs two distinct persons');
+	return a < b ? { low: a, high: b } : { low: b, high: a };
+}
+
+export function activePeriods(periods: Period[]): Period[] {
+	return periods.filter((p) => p.validTo === null);
+}
+
+function typeById(types: RelType[], id: number): RelType | undefined {
+	return types.find((t) => t.id === id);
+}
+
+function isRomance(t: RelType | undefined): boolean {
+	return !!t && t.name === 'Romantik';
+}
+function isFriendshipPlus(t: RelType | undefined): boolean {
+	return !!t && t.name === 'Freundschaft Plus';
+}
+
+/** The active closeness period for a connection, if any (at most one — C-MODEL-3). */
+export function activeCloseness(periods: Period[], types: RelType[]): Period | null {
+	return (
+		activePeriods(periods).find((p) => typeById(types, p.relationshipTypeId)?.isClosenessLevel) ?? null
+	);
+}
+
+export function hasActiveRomance(periods: Period[], types: RelType[]): boolean {
+	return activePeriods(periods).some((p) => isRomance(typeById(types, p.relationshipTypeId)));
+}
+
+/** The dominant current type name for a connection (graph edge color). */
+export function currentTypeName(periods: Period[], types: RelType[]): string | null {
+	const actives = activePeriods(periods)
+		.map((p) => typeById(types, p.relationshipTypeId)?.name)
+		.filter((n): n is string => !!n);
+	if (actives.length === 0) return null;
+	actives.sort((a, b) => (TYPE_PRIORITY[b] ?? 0) - (TYPE_PRIORITY[a] ?? 0));
+	return actives[0];
+}
+
+export function colorForType(name: string | null): string {
+	if (!name) return '#bbbbbb';
+	return TYPE_COLORS[name] ?? '#7a8a99'; // context types fall back to grey-blue
+}
+
+/**
+ * Sort key for "engste zuerst" on a person profile (SCR-012):
+ * Romantik/Ex first, then closeness ladder (Enge → Freundschaft → Bekanntschaft),
+ * then the rest. Lower number sorts first.
+ */
+export function closenessSortKey(periods: Period[], types: RelType[]): number {
+	const name = currentTypeName(periods, types);
+	if (!name) return 999;
+	if (name === 'Romantik') return 0;
+	if (name === 'Ex-Partner/in') return 1;
+	if (name === 'Enge Freundschaft') return 2;
+	if (name === 'Freundschaft') return 3;
+	if (name === 'Bekanntschaft') return 4;
+	return 10;
+}
+
+/** V-7: end-before-start is invalid when both exact dates are known. */
+export function validateTimeOrder(from: Date | null, to: Date | null): RuleError | null {
+	if (from && to && to.getTime() < from.getTime()) return 'E-TIME-ORDER';
+	return null;
+}
+
+/**
+ * Evaluate starting a relationship type, given the connection's current periods.
+ * Returns whether it is allowed and which active periods would be ended (V-1..V-6).
+ */
+export function evaluateStartType(newTypeId: number, periods: Period[], types: RelType[]): TransitionResult {
+	const newType = typeById(types, newTypeId);
+	if (!newType) return { allowed: false, ends: [], message: 'Unbekannter Typ' };
+	const romanceActive = hasActiveRomance(periods, types);
+
+	// Closeness level
+	if (newType.isClosenessLevel) {
+		if (romanceActive) {
+			return {
+				allowed: false,
+				error: 'E-NG-ROM',
+				ends: [],
+				message: 'Während einer romantischen Beziehung ist kein Nähegrad möglich.'
+			};
+		}
+		// Changing closeness ends the previous active closeness (V-2/C-MODEL-4).
+		const cur = activeCloseness(periods, types);
+		return { allowed: true, ends: cur ? [cur.relationshipTypeId] : [] };
+	}
+
+	// Friendship Plus
+	if (isFriendshipPlus(newType)) {
+		if (romanceActive) {
+			return {
+				allowed: false,
+				error: 'E-FP-ROM',
+				ends: [],
+				message: 'Freundschaft Plus ist parallel zu einer Romantik nicht möglich.'
+			};
+		}
+		const alreadyActive = activePeriods(periods).some((p) =>
+			isFriendshipPlus(typeById(types, p.relationshipTypeId))
+		);
+		if (alreadyActive) {
+			return { allowed: false, error: 'E-PERIOD-OVERLAP', ends: [], message: 'Bereits aktiv.' };
+		}
+		return { allowed: true, ends: [] };
+	}
+
+	// Romance — ends active closeness + friendship plus (V-4, DEC-008).
+	if (isRomance(newType)) {
+		if (romanceActive) {
+			return { allowed: false, error: 'E-PERIOD-OVERLAP', ends: [], message: 'Bereits aktiv.' };
+		}
+		const ends = activePeriods(periods)
+			.filter((p) => {
+				const t = typeById(types, p.relationshipTypeId);
+				return !!t && (t.isClosenessLevel || isFriendshipPlus(t));
+			})
+			.map((p) => p.relationshipTypeId);
+		return { allowed: true, ends };
+	}
+
+	// Context / status types (Cosplay, Business, Ex…) run in parallel (DEC-023).
+	const alreadyActive = activePeriods(periods).some((p) => p.relationshipTypeId === newTypeId);
+	if (alreadyActive) {
+		return { allowed: false, error: 'E-PERIOD-OVERLAP', ends: [], message: 'Bereits aktiv.' };
+	}
+	return { allowed: true, ends: [] };
+}
+
+export interface EndRomanceInput {
+	/** Required follow closeness type id, or null for explicit "kein Nähegrad". `undefined` = no choice made. */
+	followClosenessTypeId: number | null | undefined;
+	activateExPartner: boolean;
+}
+
+/** V-5: romance-end requires that a follow choice was made (even "none"). */
+export function validateEndRomance(input: EndRomanceInput): RuleError | null {
+	if (input.followClosenessTypeId === undefined) return 'E-ROM-END-INCOMPLETE';
+	return null;
+}

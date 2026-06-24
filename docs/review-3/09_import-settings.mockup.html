@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RelaTable – Review 3 · Block 9: Import & Einstellungen</title>
+<style>
+  :root{--ink:#2b2b2b;--mut:#777;--line:#bbb;--bg:#f4f4f5;--card:#fff;--rail:#e7e7ea;--accent:#555;--warn:#b3541e;--ok:#2f7a43}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,Segoe UI,Roboto,sans-serif}
+  h1{font-size:20px;margin:0 0 4px}h2{font-size:15px;margin:0}
+  .wrap{max-width:1180px;margin:0 auto;padding:24px}.lead{color:var(--mut);margin:0 0 18px}
+  .screen{background:var(--card);border:1px solid var(--line);border-radius:10px;margin:0 0 26px;overflow:hidden}
+  .screen>header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;background:#ececef;border-bottom:1px solid var(--line)}
+  .tag{font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:20px;padding:2px 9px;background:#fff}
+  .body{padding:16px}.muted{color:var(--mut)}
+  .btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--accent);border-radius:7px;padding:6px 11px;background:#fff;font-size:13px}.btn.primary{background:var(--accent);color:#fff}
+  .co{display:inline-flex;width:18px;height:18px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;align-items:center;justify-content:center;margin-right:5px}
+  .ann{margin:12px 0 0;padding:12px 14px;background:#fafafa;border:1px solid var(--line);border-radius:8px;font-size:13px}.ann ul{margin:6px 0 0;padding-left:18px}
+  .row{display:flex;gap:16px;flex-wrap:wrap}.grow{flex:1;min-width:0}
+  .inp{border:1px solid var(--line);border-radius:7px;background:#fff;padding:8px 10px;color:#999}
+  label{font-size:12px;color:var(--mut)}
+  .step{display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:10px}
+  .step .n{width:20px;height:20px;border-radius:50%;background:#d6d6db;display:flex;align-items:center;justify-content:center;font-size:11px}.step .n.on{background:var(--accent);color:#fff}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}th,td{border:1px solid var(--line);padding:6px 8px;text-align:left}th{background:#f0f0f3}
+  .note{border-radius:7px;padding:9px;font-size:12px;margin-top:8px}.note.warn{border:1px solid var(--warn);background:#fbf1ea;color:#7a3a14}.note.ok{border:1px solid var(--ok);background:#eef6f0;color:#235e36}
+  .card{border:1px solid var(--line);border-radius:9px;padding:12px;background:#fff}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;font-size:12px}.seg div{padding:6px 12px;border-right:1px solid var(--line)}.seg div:last-child{border-right:none}.seg .on{background:#d6d6db;font-weight:600}
+  .legend{font-size:12px;color:var(--mut);margin:10px 0 22px}
+  .toggle{width:34px;height:18px;border-radius:20px;background:#cfcfd6;position:relative;display:inline-block;vertical-align:middle}.toggle.on{background:#3a6ea5}.toggle::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff}.toggle.on::after{left:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>RelaTable — Review 3 · Block 9: Import &amp; Einstellungen</h1>
+  <p class="lead">SCR-080…084. Einmaliger Notion-Import (DEC-024) + konfigurierbare Typen/Ausschlussregeln, Theme, Backup. Features FEAT-090…093, FEAT-100…103, FEAT-110/111 · FLOW-26/27.</p>
+  <p class="legend">① ② ③ = Callouts.</p>
+
+  <!-- SCR-080 Import -->
+  <section class="screen">
+    <header><h2>SCR-080 · Notion-Import (Vorschau → Ausführung)</h2><span class="tag">FEAT-090..093 · FLOW-26 · AC-110..113</span></header>
+    <div class="body">
+      <div class="card">
+        <div class="step"><span class="n">1</span>Zugang <span class="muted">→</span><span class="n on">2</span>Vorschau &amp; Mapping <span class="muted">→</span><span class="n">3</span>Ausführen <span class="muted">→</span><span class="n">4</span>Bericht</div>
+        <div class="row" style="gap:10px;margin-bottom:8px">
+          <div class="grow"><label>Notion-Token <span class="co">1</span></label><div class="inp" style="margin-top:3px">•••••••••• (sicher gespeichert, nie geloggt)</div></div>
+          <div class="grow"><label>Datenbanken</label><div class="inp" style="margin-top:3px">Person, Relation, Event, Account ▾</div></div>
+        </div>
+        <b style="font-size:13px">Vorschau &amp; Feld-Mapping ②</b>
+        <table style="margin-top:6px">
+          <tr><th>Notion-Feld</th><th>→ RelaTable</th><th>Status</th></tr>
+          <tr><td>Name</td><td>Person.Name</td><td>✓ neu (42)</td></tr>
+          <tr><td>Date of Birth</td><td>Person.DateOfBirth</td><td>✓ neu</td></tr>
+          <tr><td>Age</td><td>— (berechnet)</td><td class="muted">ignoriert (DEC-014)</td></tr>
+          <tr><td>Instagram URL</td><td>SocialAccount</td><td>✓ strukturiert</td></tr>
+          <tr><td>Relation „People"</td><td>Connection (2er)</td><td>⚠ 3 mit &gt;2 Personen</td></tr>
+        </table>
+        <div class="note warn"><span class="co" style="background:var(--warn)">!</span>3 Konflikte: Relationen mit mehr als 2 Personen — werden übersprungen (als Hinweis im Bericht). 5 Duplikate erkannt (bereits importiert).</div>
+        <div class="row" style="justify-content:flex-end;gap:8px;margin-top:10px"><button class="btn">Abbrechen</button><button class="btn primary">Import ausführen ③</button></div>
+        <div class="note ok">Bericht (nach Ausführung): 42 erstellt · 5 übersprungen (Duplikat) · 3 Konflikte · 0 Fehler.</div>
+      </div>
+      <div class="ann"><b>Annotation SCR-080</b><ul>
+        <li>① Token sicher, nie im Klartext geloggt (FEAT-090). ② Vorschau/Mapping <b>vor</b> jedem Schreiben (AC-110).</li>
+        <li>③ Abbruch = nichts geschrieben (AC-111); Wiederholung ohne Duplikate via ExternalImportMap (AC-112); Bericht erstellt/übersprungen/Fehler (AC-113).</li>
+        <li>Einmaliger Import, kein laufender Sync (DEC-003).</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- SCR-081 Typen + Ausschlussregeln -->
+  <section class="screen">
+    <header><h2>SCR-081 · Beziehungstypen &amp; Ausschlussregeln</h2><span class="tag">FEAT-100/101 · AC-120 · Regeln 07</span></header>
+    <div class="body">
+      <div class="row">
+        <div class="grow" style="min-width:300px">
+          <b style="font-size:13px">Kategorien &amp; Typen <span class="co">1</span></b>
+          <div class="card" style="margin-top:6px;font-size:13px">
+            <div class="muted">Nähegrad (geordnet)</div>
+            Bekanntschaft · Freundschaft · Enge Freundschaft<br>
+            <div class="muted" style="margin-top:8px">Status / parallel</div>
+            Freundschaft Plus · Romantik · Ex-Partner/in<br>
+            <div class="muted" style="margin-top:8px">Kontext (frei anlegbar, DEC-023)</div>
+            Cosplay · Business · <span class="btn" style="padding:2px 7px">+ Typ</span>
+          </div>
+        </div>
+        <div class="grow" style="min-width:300px">
+          <b style="font-size:13px">Ausschlussregeln (verständlich) ②</b>
+          <div class="card" style="margin-top:6px;font-size:13px;line-height:1.7">
+            • „Romantik" <b>beendet</b> aktiven Nähegrad &amp; Freundschaft Plus.<br>
+            • Während „Romantik" ist <b>kein</b> Nähegrad möglich.<br>
+            • Nähegrad-Stufen schließen sich gegenseitig aus (nur eine aktiv).<br>
+            • „Freundschaft Plus" läuft parallel zum Nähegrad.<br>
+            • „Sex" ist ein Ereignis und ändert den Status nicht.
+          </div>
+        </div>
+      </div>
+      <div class="ann"><b>Annotation SCR-081</b><ul>
+        <li>① Typen erweiterbar (nicht nur Code); Kontexttypen frei anlegbar (DEC-023).</li>
+        <li>② Ausschlussregeln in Klartext (für Laien), abgeleitet aus den Domainregeln (07).</li>
+        <li><b>Schutz:</b> Typ in Nutzung wird deaktiviert statt gelöscht; Historie bleibt gültig (AC-120).</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- SCR-082/083 Ereignistypen, Theme, Backup -->
+  <section class="screen">
+    <header><h2>SCR-082 · Ereignistypen · Theme · Backup</h2><span class="tag">FEAT-102/103/110 · DEC-015/027/031</span></header>
+    <div class="body">
+      <div class="row">
+        <div class="grow" style="min-width:260px">
+          <b style="font-size:13px">Ereignistypen</b>
+          <div class="card" style="margin-top:6px;font-size:13px">
+            Urlaub · Party · Konzert/Festival · Convention · Generisch<br>
+            <span style="color:#b3541e">Sex <span class="muted">(sensibel)</span></span> <span class="toggle on"></span> <span class="muted" style="font-size:11px">als sensibel markiert</span><br>
+            <span class="btn" style="padding:2px 7px;margin-top:6px">+ Ereignistyp</span>
+          </div>
+        </div>
+        <div class="grow" style="min-width:240px">
+          <b style="font-size:13px">Theme <span class="co">1</span></b>
+          <div class="card" style="margin-top:6px"><span class="seg"><div class="on">System</div><div>Hell</div><div>Dunkel</div></span><div class="muted" style="font-size:11px;margin-top:6px">folgt System bis manuell gewählt (DEC-015)</div></div>
+          <b style="font-size:13px;display:block;margin-top:10px">Sensible Inhalte</b>
+          <div class="card" style="margin-top:6px;font-size:13px">Standard verbergen <span class="toggle on"></span> <span class="muted" style="font-size:11px">(DEC-027)</span></div>
+        </div>
+        <div class="grow" style="min-width:240px">
+          <b style="font-size:13px">Backup / Restore <span class="co">2</span></b>
+          <div class="card" style="margin-top:6px;font-size:13px">
+            <button class="btn">Backup erstellen</button> <span class="muted" style="font-size:11px">DB + Bilder als ein Paket</span>
+            <div class="muted" style="font-size:11px;margin-top:8px">Restore: Verfahren dokumentiert &amp; getestet. <b>Niedrige Priorität (DEC-031).</b></div>
+          </div>
+        </div>
+      </div>
+      <div class="ann"><b>Annotation SCR-082</b><ul>
+        <li>① Theme System/Hell/Dunkel, persistiert (AC-121). Sensible-Inhalte-Default als globale Einstellung (DEC-027).</li>
+        <li>② Backup = ein konsistentes Paket (DB + Uploads); Restore dokumentiert/getestet (FEAT-110/111, niedrige Prio).</li>
+        <li>Ereignistypen verwaltbar inkl. Sensitivitäts-Flag (FEAT-102).</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <p class="legend">Ende Review 3 (alle 9 Blöcke). Nächste Schritte: Review 4 (Responsive/Fehlerzustände) &amp; Review 5 (Übergabepaket).</p>
+</div>
+</body>
+</html>

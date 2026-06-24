@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RelaTable – Review 3 · Block 2: Personen</title>
+<style>
+  :root{--ink:#2b2b2b;--mut:#777;--line:#bbb;--bg:#f4f4f5;--card:#fff;--rail:#e7e7ea;--accent:#555;--warn:#b3541e}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,Segoe UI,Roboto,sans-serif}
+  h1{font-size:20px;margin:0 0 4px}h2{font-size:15px;margin:0}
+  .wrap{max-width:1180px;margin:0 auto;padding:24px}
+  .lead{color:var(--mut);margin:0 0 18px}
+  .screen{background:var(--card);border:1px solid var(--line);border-radius:10px;margin:0 0 26px;overflow:hidden}
+  .screen>header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;background:#ececef;border-bottom:1px solid var(--line)}
+  .tag{font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:20px;padding:2px 9px;background:#fff}
+  .body{padding:16px}
+  .ph{background:repeating-linear-gradient(45deg,#eee,#eee 6px,#f6f6f6 6px,#f6f6f6 12px);border:1px dashed var(--line);border-radius:6px;color:#999;display:flex;align-items:center;justify-content:center;text-align:center}
+  .muted{color:var(--mut)}
+  .btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--accent);border-radius:7px;padding:6px 11px;background:#fff;font-size:13px}
+  .btn.primary{background:var(--accent);color:#fff}.btn.warn{border-color:var(--warn);color:var(--warn)}
+  .inp{border:1px solid var(--line);border-radius:7px;background:#fff;padding:8px 10px;color:#999}
+  .co{display:inline-flex;width:18px;height:18px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;align-items:center;justify-content:center;margin-right:5px}
+  .ann{margin:12px 0 0;padding:12px 14px;background:#fafafa;border:1px solid var(--line);border-radius:8px;font-size:13px}
+  .ann ul{margin:6px 0 0;padding-left:18px}
+  .chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:20px;padding:3px 10px;font-size:12px;background:#fff;color:#555}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  .app{display:flex;min-height:430px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .rail{width:54px;background:var(--rail);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:6px;flex:none}
+  .rail .i{width:24px;height:24px;border:1px solid #aaa;border-radius:6px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666}
+  .rail .i.on{background:#d6d6db}
+  .content{flex:1;display:flex;flex-direction:column;min-width:0}
+  .topbar{height:46px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:0 14px;background:#f7f7f8}
+  .canvas{flex:1;padding:14px}
+  .avatar{width:34px;height:34px;border-radius:50%;background:#e2e2e6;border:1px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;color:#999;font-size:12px}
+  .pers{display:flex;align-items:center;gap:10px;padding:9px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;background:#fff}
+  .grow{flex:1;min-width:0}
+  .legend{font-size:12px;color:var(--mut);margin:10px 0 22px}
+  label{font-size:12px;color:var(--mut)}
+  .modal{border:1px solid var(--line);border-radius:10px;max-width:460px;margin:0 auto;background:#fff;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+  .modal .h{padding:12px 14px;border-bottom:1px solid var(--line);font-weight:600}
+  .modal .c{padding:14px}.modal .f{padding:12px 14px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>RelaTable — Review 3 · Block 2: Personen</h1>
+  <p class="lead">SCR-010…014. Shell wie SCR-003 (Icon-Rail). Features FEAT-010…016 · Flows FLOW-03…06.</p>
+  <p class="legend">① ② ③ = Callouts · gestreift = Bild/Platzhalter · graue Felder = Eingaben.</p>
+
+  <!-- SCR-010 Liste -->
+  <section class="screen">
+    <header><h2>SCR-010 · Personenliste (Suche + Filter)</h2><span class="tag">Desktop · FEAT-010/011 · FLOW-03 · AC-020..023</span></header>
+    <div class="body">
+      <div class="app">
+        <div class="rail"><div class="i">◕</div><div class="i on">☺</div><div class="i">★</div><div class="i">≣</div><div class="i">⌖</div><div class="i">∞</div><div class="i">⚙</div></div>
+        <div class="content">
+          <div class="topbar"><b>Personen</b><span class="muted" style="font-size:12px">· 128</span><span style="flex:1"></span><button class="btn"><span class="co">4</span>Name ↑↓</button><button class="btn primary"><span class="co" style="background:#fff;color:#555">3</span>+ Neue Person</button></div>
+          <div class="canvas">
+            <div class="row" style="gap:8px;margin-bottom:10px">
+              <div class="inp grow"><span class="co">1</span>Suche nach Name…</div>
+              <span class="chip">2 Ort: Berlin ✕</span><span class="chip">Typ: Freundschaft ✕</span><span class="chip" style="border-style:dashed">+ Filter</span>
+            </div>
+            <div class="pers"><div class="avatar">IMG</div><div class="grow"><b>Mara Vogt</b><div class="muted" style="font-size:12px">Berlin · 4 Verbindungen</div></div><span class="muted">›</span></div>
+            <div class="pers"><div class="avatar">IMG</div><div class="grow"><b>Jonas Reich</b><div class="muted" style="font-size:12px">Leipzig · 2 Verbindungen</div></div><span class="muted">›</span></div>
+            <div class="pers"><div class="avatar">—</div><div class="grow"><b>Aylin Kaya</b><div class="muted" style="font-size:12px">Hamburg · 6 Verbindungen</div></div><span class="muted">›</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="ann"><b>Annotation SCR-010</b>
+        <ul>
+          <li><b>Zweck:</b> alle Personen finden &amp; öffnen.</li>
+          <li><b>Primär:</b> Eintrag öffnen → Profil (SCR-012). ③ Neue Person → SCR-011.</li>
+          <li><b>Sekundär:</b> ① Namenssuche (serverseitig); ② Filter-Chips (Ort, Beziehungstyp), entfernbar; ④ Sortierung mit Auf-/Absteigend-Umschalter (Name; später erweiterbar).</li>
+          <li><b>Kontextwert:</b> pro Person <b>Ort + Anzahl Verbindungen</b> — <u>kein</u> einzelner Beziehungstyp, denn der gilt immer paarbezogen. „Beziehungstyp" existiert nur als <b>Filter</b> (= Personen mit mind. einer Verbindung dieses Typs).</li>
+          <li><b>Zustände:</b> Liste / leer (SCR-010b) / lädt / Fehler.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCR-010b leer + mobile -->
+  <section class="screen">
+    <header><h2>SCR-010b · Leerer Zustand + Mobile</h2><span class="tag">Desktop &amp; 390px · AC-023</span></header>
+    <div class="body">
+      <div class="row" style="align-items:flex-start">
+        <div class="grow" style="min-width:320px">
+          <div class="ph" style="height:180px;flex-direction:column;gap:8px"><div><span class="co">1</span> Noch keine Personen</div><button class="btn primary">+ Erste Person anlegen</button></div>
+          <div class="muted" style="font-size:12px;margin-top:6px">Auch für „kein Suchtreffer": Hinweis + Filter zurücksetzen.</div>
+        </div>
+        <div style="width:240px;border:8px solid #ddd;border-radius:22px;overflow:hidden">
+          <div class="topbar" style="height:38px"><b style="font-size:13px">Personen</b></div>
+          <div style="padding:8px"><div class="inp" style="margin-bottom:8px">Suche…</div>
+            <div class="pers" style="margin-bottom:6px"><div class="avatar" style="width:28px;height:28px">IMG</div><div class="grow"><b style="font-size:13px">Mara Vogt</b><div class="muted" style="font-size:11px">Berlin</div></div></div>
+            <div class="pers"><div class="avatar" style="width:28px;height:28px">—</div><div class="grow"><b style="font-size:13px">Aylin Kaya</b><div class="muted" style="font-size:11px">Hamburg</div></div></div>
+          </div>
+          <div style="height:46px;border-top:1px solid var(--line);display:flex;background:#f7f7f8;font-size:9px;color:#666">
+            <div style="flex:1;text-align:center;padding-top:8px">Graph</div><div style="flex:1;text-align:center;padding-top:8px;font-weight:600">Personen</div><div style="flex:1;text-align:center;padding-top:8px">Events</div><div style="flex:1;text-align:center;padding-top:8px">Karte</div><div style="flex:1;text-align:center;padding-top:8px">Mehr</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCR-011 anlegen -->
+  <section class="screen">
+    <header><h2>SCR-011 · Person anlegen / bearbeiten</h2><span class="tag">Desktop · FEAT-013/014/015 · FLOW-03..05 · AC-024..031</span></header>
+    <div class="body">
+      <div class="row">
+        <div class="grow" style="min-width:340px">
+          <div style="border:1px dashed var(--line);border-radius:8px;padding:14px;background:#fafafa">
+            <label>Name *</label><div class="inp" style="margin:3px 0 10px"><span class="co">1</span>Pflichtfeld</div>
+            <div class="row" style="gap:10px">
+              <div class="grow"><label>Geburtsdatum (optional)</label><div class="inp" style="margin-top:3px">TT.MM.JJJJ</div></div>
+              <div class="grow"><label>Geschlecht</label><div class="inp" style="margin-top:3px">Männlich ▾ (W / divers)</div></div>
+            </div>
+            <div style="margin-top:10px"><label>Ort (Stadt/Region genügt)</label><div class="inp" style="margin-top:3px">z. B. Berlin</div></div>
+            <div style="margin-top:10px"><label>Notizen</label><div class="inp" style="margin-top:3px;height:46px">…</div></div>
+          </div>
+        </div>
+        <div style="width:300px">
+          <label><span class="co">2</span>Profilbild</label>
+          <div style="border:1px dashed var(--line);border-radius:8px;padding:12px;background:#fafafa;margin-top:4px">
+            <div class="row" style="gap:6px;margin-bottom:8px"><span class="chip" style="background:#d6d6db">Upload</span><span class="chip">Externe URL</span></div>
+            <div class="ph" style="height:90px">Vorschau / Drag&amp;Drop<br>(Typ &amp; Größe geprüft)</div>
+            <div class="muted" style="font-size:11px;margin-top:6px">URL-Modus: HTTPS-Feld + Live-Vorschau; ③ Fehlerfall „Bild nicht ladbar" → Platzhalter, Speichern bleibt möglich.</div>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="justify-content:flex-end;gap:8px;margin-top:12px"><button class="btn">Abbrechen</button><button class="btn primary">Speichern</button></div>
+      <div class="ann"><b>Annotation SCR-011</b>
+        <ul>
+          <li><b>Zweck:</b> Stammdaten anlegen/ändern.</li>
+          <li><b>Primär:</b> Speichern (serverseitig validiert).</li>
+          <li><b>Regeln:</b> ① Name Pflicht (AC-024); Alter wird berechnet, kein Feld (AC-027/028); ② Bild Upload ODER HTTPS-URL (AC-029..031).</li>
+          <li><b>Zustände:</b> Validierungsfehler inline; Abbrechen mit Rückfrage bei Änderungen.</li>
+          <li><b>Entschieden:</b> Geschlecht als <b>Dropdown</b> (Männlich/Weiblich/divers).</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCR-012 Profil -->
+  <section class="screen">
+    <header><h2>SCR-012 · Personenprofil + Social Accounts</h2><span class="tag">Desktop · FEAT-012/016 · FLOW-06 · AC-032/033</span></header>
+    <div class="body">
+      <div class="app">
+        <div class="rail"><div class="i">◕</div><div class="i on">☺</div><div class="i">★</div><div class="i">≣</div><div class="i">⌖</div><div class="i">∞</div><div class="i">⚙</div></div>
+        <div class="content">
+          <div class="topbar"><span class="muted" style="font-size:12px">‹ Personen</span><span style="flex:1"></span><button class="btn">Bearbeiten</button><button class="btn warn">Löschen</button></div>
+          <div class="canvas">
+            <div class="row" style="align-items:center;margin-bottom:12px"><div class="avatar" style="width:64px;height:64px">IMG</div><div><b style="font-size:17px">Mara Vogt</b><div class="muted" style="font-size:12px">31 Jahre · Berlin</div><button class="btn" style="margin-top:6px"><span class="co">1</span>Im Graph fokussieren</button></div></div>
+            <div class="row">
+              <div class="grow" style="min-width:240px"><b style="font-size:13px">Social Accounts <span class="co">2</span></b>
+                <div class="pers" style="margin-top:6px"><div class="avatar" style="width:26px;height:26px">IG</div><div class="grow"><b style="font-size:13px">@mara.v</b><div class="muted" style="font-size:11px">Instagram</div></div><span class="muted">↗</span></div>
+                <button class="btn" style="margin-top:4px">+ Account</button>
+              </div>
+              <div class="grow" style="min-width:240px"><b style="font-size:13px">Beziehungen <span class="co">3</span></b> <span class="muted" style="font-size:11px">(engste zuerst)</span>
+                <div class="pers" style="margin-top:6px"><div class="avatar" style="width:26px;height:26px">—</div><div class="grow"><b style="font-size:13px">Aylin Kaya</b><div class="muted" style="font-size:11px">Enge Freundschaft · seit 2022</div></div><span class="muted">›</span></div>
+              </div>
+            </div>
+            <div style="margin-top:12px"><b style="font-size:13px">Ereignisse (chronologisch)</b><div class="ph" style="height:60px;margin-top:6px">Timeline-Auszug · sensible verborgen (Toggle)</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="ann"><b>Annotation SCR-012</b>
+        <ul>
+          <li><b>Zweck:</b> alle Infos einer Person; Sprungbrett in Graph/Pair.</li>
+          <li><b>Primär:</b> ① „Im Graph fokussieren" (FLOW-19).</li>
+          <li><b>Sekundär:</b> ② Accounts (hinzufügen/öffnen, Duplikatwarnung), ③ Beziehung → Pair-Details; Bearbeiten/Löschen.</li>
+          <li><b>Zustände:</b> ohne Bild = Initialen; sensible Ereignisse verborgen bis Toggle (DEC-027).</li>
+          <li><b>Entschieden:</b> Beziehungen <b>nach Nähe sortiert, engste zuerst</b> (Enge Freundschaft → Freundschaft → Bekanntschaft; Romantik/Ex separat oben).</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCR-013 Löschdialog -->
+  <section class="screen">
+    <header><h2>SCR-013 · Löschdialog mit Abhängigkeitswarnung</h2><span class="tag">Desktop &amp; Mobil · FEAT-013 · AC-025/026</span></header>
+    <div class="body">
+      <div class="modal">
+        <div class="h">Person löschen: „Mara Vogt"?</div>
+        <div class="c">
+          <div style="border:1px solid var(--warn);background:#fbf1ea;border-radius:7px;padding:10px;color:#7a3a14;font-size:13px"><span class="co" style="background:var(--warn)">!</span>Betroffen: <b>3 Beziehungen</b>, <b>7 Ereignis-Teilnahmen</b>, <b>1 Tagebuch-Verlauf</b>.</div>
+          <div class="muted" style="font-size:12px;margin-top:10px">Beziehungen, an denen nur Mara beteiligt ist, werden entfernt. Ereignisse bleiben, verlieren aber Mara als Teilnehmer.</div>
+          <label style="display:block;margin-top:10px"><input type="checkbox"> Ich verstehe die Auswirkungen.</label>
+        </div>
+        <div class="f"><button class="btn">Abbrechen</button><button class="btn warn">Endgültig löschen</button></div>
+      </div>
+      <div class="ann"><b>Annotation SCR-013</b>
+        <ul>
+          <li><b>Zweck:</b> versehentliche Datenverluste verhindern.</li>
+          <li><b>Primär:</b> Löschen erst nach Bestätigungs-Checkbox aktiv.</li>
+          <li><b>Regeln:</b> Abhängigkeiten anzeigen (AC-025), keine verwaisten Referenzen (AC-026).</li>
+          <li><b>Entschieden:</b> kein Archivieren in V1 — nur endgültiges Löschen.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <p class="legend">Nächster Block: 03 Hauptgraph (Node-Panel, Fokus, Legende, mobile/Long-Press, Leer-/Ladezustand).</p>
+</div>
+</body>
+</html>

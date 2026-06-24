@@ -1,0 +1,272 @@
+// RelaTable data model — mirrors docs/review-1/06_datenmodell.md.
+// SQLite, single-owner. Historization via ConnectionRelationshipPeriod (never overwritten).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// The single owner account (DEC-001).
+model AppUser {
+  id            Int      @id @default(autoincrement())
+  displayName   String
+  passwordHash  String
+  // System|Light|Dark (DEC-015)
+  themePreference String @default("System")
+  createdAt     DateTime @default(now())
+
+  sessions Session[]
+  settings AppSetting[]
+}
+
+// Cookie-session store (DEC-018).
+model Session {
+  id        String   @id
+  userId    Int
+  user      AppUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model AppSetting {
+  id      Int     @id @default(autoincrement())
+  ownerId Int
+  owner   AppUser @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  key     String
+  value   String
+
+  @@unique([ownerId, key])
+}
+
+model Location {
+  id          Int     @id @default(autoincrement())
+  displayName String
+  city        String?
+  region      String?
+  country     String?
+  latitude    Float?
+  longitude   Float?
+  // exact|city|region|country|unknown (DEC-012)
+  precision   String  @default("city")
+
+  persons Person[]
+  events  Event[]
+}
+
+model Person {
+  id              Int       @id @default(autoincrement())
+  ownerId         Int
+  name            String
+  dateOfBirth     DateTime?
+  // Maennlich|Weiblich|divers (DEC-021)
+  gender          String?
+  notes           String?
+  profileImagePath String?
+  profileImageUrl String?
+  locationId      Int?
+  location        Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  socialAccounts SocialAccount[]
+  connectionsLow  Connection[] @relation("PersonLow")
+  connectionsHigh Connection[] @relation("PersonHigh")
+  eventParticipations EventParticipant[]
+
+  @@index([ownerId])
+  @@index([name])
+}
+
+model SocialAccount {
+  id        Int      @id @default(autoincrement())
+  personId  Int
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  platform  String
+  handle    String
+  url       String?
+  visibility String?
+  createdAt DateTime @default(now())
+
+  @@index([personId])
+}
+
+// Unordered pair, canonical personLowId < personHighId (C-MODEL-1/2).
+model Connection {
+  id           Int      @id @default(autoincrement())
+  ownerId      Int
+  personLowId  Int
+  personHighId Int
+  personLow    Person   @relation("PersonLow", fields: [personLowId], references: [id], onDelete: Cascade)
+  personHigh   Person   @relation("PersonHigh", fields: [personHighId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  periods   ConnectionRelationshipPeriod[]
+  journal   ConnectionJournalEntry[]
+  changeLog RelationshipChangeLog[]
+
+  @@unique([ownerId, personLowId, personHighId])
+  @@index([personLowId])
+  @@index([personHighId])
+}
+
+model RelationshipCategory {
+  id        Int    @id @default(autoincrement())
+  // Naehegrad|Kontext|Romantik|Status
+  name      String @unique
+  sortOrder Int    @default(0)
+
+  types RelationshipType[]
+}
+
+model RelationshipType {
+  id              Int     @id @default(autoincrement())
+  categoryId      Int
+  category        RelationshipCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name            String  @unique
+  // ranks the Naehegrad ladder; null otherwise
+  rank            Int?
+  isContinuous    Boolean @default(true)
+  isClosenessLevel Boolean @default(false)
+  isActive        Boolean @default(true)
+  // hex color for graph edges / legend
+  color           String?
+
+  periods         ConnectionRelationshipPeriod[]
+  exclusionSource RelationshipExclusionRule[] @relation("SourceType")
+  exclusionTarget RelationshipExclusionRule[] @relation("TargetType")
+  changeLog       RelationshipChangeLog[]
+}
+
+model RelationshipExclusionRule {
+  id           Int    @id @default(autoincrement())
+  sourceTypeId Int
+  targetTypeId Int
+  sourceType   RelationshipType @relation("SourceType", fields: [sourceTypeId], references: [id], onDelete: Cascade)
+  targetType   RelationshipType @relation("TargetType", fields: [targetTypeId], references: [id], onDelete: Cascade)
+  // blocks|ends
+  effect       String
+
+  @@unique([sourceTypeId, targetTypeId, effect])
+}
+
+// Historized period of a type on a connection (C-MODEL-4). Open validTo = active.
+model ConnectionRelationshipPeriod {
+  id               Int      @id @default(autoincrement())
+  connectionId     Int
+  connection       Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  relationshipTypeId Int
+  relationshipType RelationshipType @relation(fields: [relationshipTypeId], references: [id], onDelete: Restrict)
+  // day|month|year|season|approx|unknown (DEC-013)
+  validFromKind    String   @default("day")
+  validFrom        DateTime?
+  validFromText    String?
+  validToKind      String?
+  validTo          DateTime?
+  validToText      String?
+  note             String?
+
+  @@index([connectionId])
+}
+
+model ConnectionJournalEntry {
+  id           Int      @id @default(autoincrement())
+  connectionId Int
+  connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  occurredAtKind String @default("day")
+  occurredAt   DateTime?
+  occurredAtText String?
+  title        String
+  note         String?
+  createdAt    DateTime @default(now())
+
+  @@index([connectionId])
+}
+
+model RelationshipChangeLog {
+  id           Int      @id @default(autoincrement())
+  connectionId Int
+  connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  // start|end|upgrade|downgrade|set-follow-status
+  action       String
+  relationshipTypeId Int?
+  relationshipType RelationshipType? @relation(fields: [relationshipTypeId], references: [id], onDelete: SetNull)
+  changedAt    DateTime @default(now())
+  detail       String?
+
+  @@index([connectionId])
+}
+
+model EventType {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  // normal|sensitive
+  sensitivity String  @default("normal")
+  isActive    Boolean @default(true)
+
+  events Event[]
+}
+
+model Event {
+  id            Int      @id @default(autoincrement())
+  ownerId       Int
+  name          String
+  eventTypeId   Int
+  eventType     EventType @relation(fields: [eventTypeId], references: [id], onDelete: Restrict)
+  occurredAtKind String  @default("day")
+  occurredAt    DateTime?
+  occurredAtText String?
+  locationId    Int?
+  location      Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  note          String?
+  aiNote        String?
+  createdAt     DateTime @default(now())
+
+  participants EventParticipant[]
+
+  @@index([ownerId])
+}
+
+model EventParticipant {
+  id       Int    @id @default(autoincrement())
+  eventId  Int
+  event    Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  personId Int
+  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  role     String?
+
+  @@unique([eventId, personId])
+  @@index([personId])
+}
+
+model ImportBatch {
+  id           Int      @id @default(autoincrement())
+  startedAt    DateTime @default(now())
+  finishedAt   DateTime?
+  // preview|applied|failed
+  status       String   @default("preview")
+  createdCount Int      @default(0)
+  skippedCount Int      @default(0)
+  errorCount   Int      @default(0)
+
+  maps ExternalImportMap[]
+}
+
+model ExternalImportMap {
+  id            Int      @id @default(autoincrement())
+  importBatchId Int
+  importBatch   ImportBatch @relation(fields: [importBatchId], references: [id], onDelete: Cascade)
+  externalSource String  @default("notion")
+  externalId    String
+  // person|connection|event|account
+  entityType    String
+  internalId    Int
+
+  @@unique([externalSource, externalId])
+}
