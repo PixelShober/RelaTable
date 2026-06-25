@@ -24,6 +24,7 @@
 		error: 'Sprachdienst nicht erreichbar.'
 	};
 	let reason = $state<Reason>('loading');
+	let statusMsg = $state('');
 	let popup = $state(false);
 	let popupTimer = 0;
 	const blocked = $derived(reason !== null);
@@ -31,7 +32,9 @@
 	onMount(async () => {
 		try {
 			const r = await fetch('/api/voice-status');
-			reason = r.ok ? ((await r.json()).reason ?? null) : 'error';
+			const data = await r.json().catch(() => ({}));
+			reason = r.ok ? (data.reason ?? null) : 'error';
+			if (data.message) statusMsg = data.message;
 		} catch {
 			reason = 'error';
 		}
@@ -174,7 +177,7 @@
 			error = SR
 				? 'Nichts verstanden — bitte erneut.'
 				: 'Spracherkennung nicht verfügbar — bitte tippen.';
-			convoOpen = !SR;
+			convoOpen = true;
 			return;
 		}
 		await send(text);
@@ -245,7 +248,7 @@
 				class="absolute bottom-full right-0 mb-2 w-56 rounded-lg border border-warn bg-card px-3 py-2 text-[12px] text-warn shadow-lg"
 				role="alert"
 			>
-				{MSG[reason]}
+				{statusMsg || MSG[reason]}
 			</div>
 		{/if}
 		<button
@@ -253,7 +256,7 @@
 			onclick={openAndStart}
 			aria-label="Mikrofon starten"
 			aria-disabled={blocked}
-			title={reason ? MSG[reason] : error || 'Erzählen'}
+			title={reason ? (statusMsg || MSG[reason]) : error || 'Erzählen'}
 			class="grid h-14 w-14 place-items-center rounded-full shadow-lg transition-all duration-200
 				{blocked
 				? 'cursor-not-allowed border border-line bg-card text-mut opacity-50'

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { agentLoop, type Msg, type Tool } from './narrate';
+import { agentLoop, buildPrompt, runNarration, SYSTEM_PROMPT, type Msg, type Tool } from './narrate';
 
 // Self-Check ohne API/DB: der Agenten-Loop muss Tool-Aufrufe ausführen, deren
 // Ergebnisse zurückreichen und beim ersten Text-ohne-Tool-Aufruf stoppen — und
@@ -56,5 +56,52 @@ describe('agentLoop', () => {
 			callTool: async () => 'ok'
 		});
 		expect(r.reply).toMatch(/verschachtelt/);
+	});
+
+	it('fällt bei fehlerhaften JSON-Args auf {} zurück und läuft weiter', async () => {
+		const receivedArgs: unknown[] = [];
+		const script: Msg[] = [
+			{ role: 'assistant', content: null, tool_calls: [{ id: 'b1', type: 'function', function: { name: 'search_persons', arguments: 'KEIN_JSON' } }] },
+			{ role: 'assistant', content: 'Fallback erfolgreich.' }
+		];
+		let i = 0;
+		const r = await agentLoop({
+			messages: [{ role: 'user', content: 'Test.' }],
+			tools,
+			chat: async () => script[i++],
+			callTool: async (_name, args) => {
+				receivedArgs.push(args);
+				return 'ok';
+			}
+		});
+		expect(receivedArgs[0]).toEqual({});
+		expect(r.reply).toBe('Fallback erfolgreich.');
+	});
+});
+
+describe('buildPrompt', () => {
+	it('enthält SYSTEM_PROMPT in beiden Modi', () => {
+		expect(buildPrompt(true)).toContain(SYSTEM_PROMPT);
+		expect(buildPrompt(false)).toContain(SYSTEM_PROMPT);
+	});
+
+	it('autoApprove=true → FREIGABE: AUTOMATISCH', () => {
+		expect(buildPrompt(true)).toContain('FREIGABE: AUTOMATISCH');
+	});
+
+	it('autoApprove=false → FREIGABE: BESTÄTIGUNG ERFORDERLICH', () => {
+		expect(buildPrompt(false)).toContain('FREIGABE: BESTÄTIGUNG ERFORDERLICH');
+	});
+});
+
+describe('runNarration', () => {
+	it('wirft ohne API-Key sofort', async () => {
+		const saved = process.env.OPENROUTER_API_KEY;
+		try {
+			delete process.env.OPENROUTER_API_KEY;
+			await expect(runNarration([])).rejects.toThrow('Kein OpenRouter-API-Key');
+		} finally {
+			if (saved !== undefined) process.env.OPENROUTER_API_KEY = saved;
+		}
 	});
 });
