@@ -4,7 +4,7 @@ import { db } from './db';
 import { findOrCreateLocation } from './geo';
 import type { ParsedImprecise } from './impreciseTime';
 import type { TimeKind } from '$lib/domain/time';
-import { canonicalPair } from '$lib/domain/relationships';
+import { canonicalPair, normalizeRelationshipTypeName } from '$lib/domain/relationships';
 
 /**
  * Narrative-friendly JSON import (FEAT, complements the one-time Notion import).
@@ -271,7 +271,8 @@ async function applyPayload(
 		}
 
 		for (const period of c.periods ?? []) {
-			const typeId = relTypeByName.get(period.type.toLowerCase());
+			const normalizedType = normalizeRelationshipTypeName(period.type);
+			const typeId = relTypeByName.get(normalizedType.toLowerCase());
 			if (typeId == null) {
 				report.skipped++;
 				warnings.push(`Verbindung „${c.personA}–${c.personB}": unbekannter Beziehungstyp „${period.type}" übersprungen.`);

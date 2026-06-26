@@ -7,6 +7,7 @@ import {
 	validateTimeOrder,
 	validateEndRomance,
 	closenessSortKey,
+	normalizeRelationshipTypeName,
 	type RelType,
 	type Period
 } from './relationships';
@@ -104,5 +105,18 @@ describe('closeness sort (engste zuerst, SCR-012)', () => {
 		expect(k(T.ex.id)).toBeLessThan(k(T.enge.id));
 		expect(k(T.enge.id)).toBeLessThan(k(T.freundschaft.id));
 		expect(k(T.freundschaft.id)).toBeLessThan(k(T.bekanntschaft.id));
+	});
+});
+
+describe('relationship type phrase normalization', () => {
+	it('maps good-friend phrasing to Enge Freundschaft', () => {
+		expect(normalizeRelationshipTypeName('gute Freunde')).toBe('Enge Freundschaft');
+		expect(normalizeRelationshipTypeName('gute Freundschaft')).toBe('Enge Freundschaft');
+		expect(normalizeRelationshipTypeName('sehr gute Freunde')).toBe('Enge Freundschaft');
+	});
+
+	it('keeps exact canonical names intact', () => {
+		expect(normalizeRelationshipTypeName('Freundschaft')).toBe('Freundschaft');
+		expect(normalizeRelationshipTypeName('Enge Freundschaft')).toBe('Enge Freundschaft');
 	});
 });

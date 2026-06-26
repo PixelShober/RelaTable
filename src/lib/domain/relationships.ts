@@ -30,6 +30,50 @@ const TYPE_PRIORITY: Record<string, number> = {
 	'Freundschaft Plus': 40
 };
 
+const REL_TYPE_ALIASES: Record<string, string> = {
+	'gute freunde': 'Enge Freundschaft',
+	'guter freund': 'Enge Freundschaft',
+	'gute freundin': 'Enge Freundschaft',
+	'gute freundschaft': 'Enge Freundschaft',
+	'sehr gute freunde': 'Enge Freundschaft',
+	'sehr gute freundschaft': 'Enge Freundschaft',
+	'enge freunde': 'Enge Freundschaft',
+	'enger freund': 'Enge Freundschaft',
+	'enge freundin': 'Enge Freundschaft',
+	'enge freundschaft': 'Enge Freundschaft',
+	'close friends': 'Enge Freundschaft',
+	'close friend': 'Enge Freundschaft',
+	'best friends': 'Enge Freundschaft',
+	'beste freunde': 'Enge Freundschaft',
+	'bester freund': 'Enge Freundschaft',
+	'beste freundin': 'Enge Freundschaft',
+	'bekannte': 'Bekanntschaft',
+	'bekannter': 'Bekanntschaft',
+	'known acquaintance': 'Bekanntschaft',
+	'freund': 'Freundschaft',
+	'freundin': 'Freundschaft',
+	'freunde': 'Freundschaft',
+	'friends': 'Freundschaft',
+	'friend': 'Freundschaft'
+};
+
+function normalizeRelTypeKey(value: string): string {
+	return value
+		.normalize('NFD')
+		.replace(/\p{Diacritic}/gu, '')
+		.toLowerCase()
+		.replace(/[^a-z0-9\s/+]/g, ' ')
+		.replace(/\s+/g, ' ')
+		.trim();
+}
+
+export function normalizeRelationshipTypeName(input: string): string {
+	const trimmed = input.trim();
+	if (!trimmed) return trimmed;
+	const canonical = Object.keys(TYPE_PRIORITY).find((name) => normalizeRelTypeKey(name) === normalizeRelTypeKey(trimmed));
+	return canonical ?? REL_TYPE_ALIASES[normalizeRelTypeKey(trimmed)] ?? trimmed;
+}
+
 export interface RelType {
 	id: number;
 	name: string;

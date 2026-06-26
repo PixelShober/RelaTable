@@ -10,7 +10,7 @@ import { findOrCreateLocation } from './geo';
 import { getOrCreateConnection, startType, endPeriod, endRomance, addJournal } from './relationshipService';
 import { updateEvent } from './eventService';
 import { searchPersons } from './persons';
-import { canonicalPair } from '$lib/domain/relationships';
+import { canonicalPair, normalizeRelationshipTypeName } from '$lib/domain/relationships';
 import type { ParsedImprecise } from './impreciseTime';
 import type { TimeKind } from '$lib/domain/time';
 
@@ -404,12 +404,13 @@ export function registerMcpTools(server: McpServer): void {
 			const bId = await resolvePersonId(oid, personB);
 			if (aId == null || bId == null) return err('Person nicht gefunden.');
 			if (aId === bId) return err('Eine Verbindung braucht zwei verschiedene Personen.');
-			const type = await db.relationshipType.findUnique({ where: { name: typeName } });
+			const normalizedTypeName = normalizeRelationshipTypeName(typeName);
+			const type = await db.relationshipType.findUnique({ where: { name: normalizedTypeName } });
 			if (!type) return err(`Beziehungstyp „${typeName}" nicht gefunden.`);
 			const conn = await getOrCreateConnection(oid, aId, bId);
 			if (!conn.ok || conn.connectionId == null) return err(conn.message ?? conn.error ?? 'Verbindung fehlgeschlagen.');
 			const r = await startType(oid, conn.connectionId, type.id, parseTime(from), note ?? null);
-			return r.ok ? ok(`Beziehung „${typeName}" gestartet für Pair ${aId}–${bId}.`) : err(r.message ?? r.error ?? 'Start abgelehnt.');
+			return r.ok ? ok(`Beziehung „${normalizedTypeName}" gestartet für Pair ${aId}–${bId}.`) : err(r.message ?? r.error ?? 'Start abgelehnt.');
 		}
 	);
 
@@ -431,7 +432,8 @@ export function registerMcpTools(server: McpServer): void {
 			const bId = await resolvePersonId(oid, personB);
 			if (aId == null || bId == null) return err('Person nicht gefunden.');
 			if (aId === bId) return err('Eine Verbindung braucht zwei verschiedene Personen.');
-			const type = await db.relationshipType.findUnique({ where: { name: typeName } });
+			const normalizedTypeName = normalizeRelationshipTypeName(typeName);
+			const type = await db.relationshipType.findUnique({ where: { name: normalizedTypeName } });
 			if (!type) return err(`Beziehungstyp „${typeName}" nicht gefunden.`);
 			const { low, high } = canonicalPair(aId, bId);
 			const conn = await db.connection.findUnique({
@@ -443,7 +445,7 @@ export function registerMcpTools(server: McpServer): void {
 			});
 			if (!active) return err(`Kein aktiver Zeitraum für „${typeName}" auf dieser Verbindung.`);
 			const r = await endPeriod(oid, active.id, parseTime(to));
-			return r.ok ? ok(`Beziehung „${typeName}" beendet für Pair ${aId}–${bId}.`) : err(r.message ?? r.error ?? 'Beenden fehlgeschlagen.');
+			return r.ok ? ok(`Beziehung „${normalizedTypeName}" beendet für Pair ${aId}–${bId}.`) : err(r.message ?? r.error ?? 'Beenden fehlgeschlagen.');
 		}
 	);
 
@@ -474,9 +476,10 @@ export function registerMcpTools(server: McpServer): void {
 
 			let followTypeId: number | null = null;
 			if (followClosenessTypeName.trim()) {
-				const t = await db.relationshipType.findUnique({ where: { name: followClosenessTypeName } });
+				const normalizedFollowTypeName = normalizeRelationshipTypeName(followClosenessTypeName);
+				const t = await db.relationshipType.findUnique({ where: { name: normalizedFollowTypeName } });
 				if (!t) return err(`Folge-Typ „${followClosenessTypeName}" nicht gefunden.`);
-				if (!t.isClosenessLevel) return err(`„${followClosenessTypeName}" ist kein Nähegrad (isClosenessLevel=false).`);
+				if (!t.isClosenessLevel) return err(`„${normalizedFollowTypeName}" ist kein Nähegrad (isClosenessLevel=false).`);
 				followTypeId = t.id;
 			}
 

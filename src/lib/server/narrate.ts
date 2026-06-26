@@ -60,6 +60,9 @@ REGELN
   participants, keine Verbindung.
 - Zeitangaben dürfen unscharf sein: "2023-08-15", "2023-08", "2023", "Sommer 2022".
 - Verwende nur exakte Typnamen aus list_relationship_types / list_event_types.
+- Nähegrad-Mapping: "gute Freunde"/"gute Freundschaft" bedeutet
+  "Enge Freundschaft"; einfache "Freunde"/"Freundschaft" bedeutet
+  "Freundschaft"; "bekannt"/"Bekanntschaft" bedeutet "Bekanntschaft".
 - Geschlecht nur "Männlich", "Weiblich", "divers". Bild-URLs nur HTTPS.
 - Lehnt ein Tool ab (Beziehungsregeln V-1..V-8), nimm die Begründung in die
   Rückfrage an den Nutzer auf.

@@ -171,6 +171,11 @@ describe('buildPrompt', () => {
 		expect(buildPrompt(true, true)).toContain('Lege erwähnte Personen notfalls nur mit Namen an');
 		expect(buildPrompt(true, false)).not.toContain('MODUS: OHNE RÜCKFRAGEN');
 	});
+
+	it('legt das gute-Freunde-Mapping auf Enge Freundschaft fest', () => {
+		expect(buildPrompt(true)).toContain('"gute Freunde"/"gute Freundschaft" bedeutet');
+		expect(buildPrompt(true)).toContain('"Enge Freundschaft"');
+	});
 });
 
 describe('sanitizeNarrationMessages', () => {
