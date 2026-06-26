@@ -1,5 +1,5 @@
 import { json, error } from '@sveltejs/kit';
-import { runNarration, type Msg } from '$lib/server/narrate';
+import { runNarration, sanitizeNarrationMessages } from '$lib/server/narrate';
 import { getBoolSetting, getSetting, SETTING_KEYS } from '$lib/server/settings';
 import type { RequestHandler } from './$types';
 
@@ -27,11 +27,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const trace = traceId();
 	const startedAt = Date.now();
 	const body = await request.json().catch(() => null);
-	const messages = body?.messages as Msg[] | undefined;
-	if (!Array.isArray(messages)) throw error(400, 'messages[] erforderlich.');
+	if (!Array.isArray(body?.messages)) throw error(400, 'messages[] erforderlich.');
+	const rawMessageCount = body.messages.length;
+	const messages = sanitizeNarrationMessages(body.messages);
+	if (!messages.length) throw error(400, 'Mindestens eine Nachricht erforderlich.');
 	logNarrateRoute('info', 'request.start', {
 		traceId: trace,
 		userId: locals.user.id,
+		rawMessageCount,
 		messageCount: messages.length
 	});
 	const [apiKey, model, autoApprove] = await Promise.all([
@@ -45,6 +48,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			traceId: trace,
 			userId: locals.user.id,
 			durationMs: Date.now() - startedAt,
+			rawMessageCount,
 			messageCount: messages.length,
 			replyChars: result.reply.length,
 			wrote: result.wrote
@@ -55,6 +59,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			traceId: trace,
 			userId: locals.user.id,
 			durationMs: Date.now() - startedAt,
+			rawMessageCount,
 			messageCount: messages.length,
 			error: e instanceof Error ? e.message : String(e)
 		});

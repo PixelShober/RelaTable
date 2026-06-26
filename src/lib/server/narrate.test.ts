@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { agentLoop, buildPrompt, runNarration, SYSTEM_PROMPT, type Msg, type Tool } from './narrate';
+import {
+	agentLoop,
+	buildPrompt,
+	isNarrationWriteApproval,
+	runNarration,
+	sanitizeNarrationMessages,
+	SYSTEM_PROMPT,
+	type Msg,
+	type Tool
+} from './narrate';
 
 // Self-Check ohne API/DB: der Agenten-Loop muss Tool-Aufrufe ausführen, deren
 // Ergebnisse zurückreichen und beim ersten Text-ohne-Tool-Aufruf stoppen — und
@@ -23,6 +32,7 @@ describe('agentLoop', () => {
 		const r = await agentLoop({
 			messages: [{ role: 'user', content: 'Ich habe Louis getroffen.' }],
 			tools,
+			allowWrites: true,
 			chat: async () => script[i++],
 			callTool: async (name) => {
 				calls.push(name);
@@ -34,6 +44,29 @@ describe('agentLoop', () => {
 		expect(r.reply).toBe('Fertig: Journal-Eintrag angelegt.');
 		// Verlauf enthält die Tool-Ergebnisse, die ans LLM zurückgereicht wurden.
 		expect(r.messages.filter((m) => m.role === 'tool')).toHaveLength(2);
+	});
+
+	it('blockiert Schreib-Tools ohne Freigabe serverseitig', async () => {
+		const calls: string[] = [];
+		const script: Msg[] = [
+			{ role: 'assistant', content: null, tool_calls: [{ id: 't1', type: 'function', function: { name: 'add_journal', arguments: '{}' } }] },
+			{ role: 'assistant', content: 'Soll ich das so übernehmen?' }
+		];
+		let i = 0;
+		const r = await agentLoop({
+			messages: [{ role: 'user', content: 'Ich habe Louis getroffen.' }],
+			tools,
+			chat: async () => script[i++],
+			callTool: async (name) => {
+				calls.push(name);
+				return `${name} ok`;
+			}
+		});
+
+		expect(calls).toEqual([]);
+		expect(r.wrote).toBe(false);
+		expect(r.messages.find((m) => m.role === 'tool')?.content).toMatch(/Schreibaktion nicht ausgeführt/);
+		expect(r.reply).toBe('Soll ich das so übernehmen?');
 	});
 
 	it('stoppt bei reiner Lese-Konversation mit wrote=false', async () => {
@@ -131,6 +164,33 @@ describe('buildPrompt', () => {
 
 	it('autoApprove=false → FREIGABE: BESTÄTIGUNG ERFORDERLICH', () => {
 		expect(buildPrompt(false)).toContain('FREIGABE: BESTÄTIGUNG ERFORDERLICH');
+	});
+});
+
+describe('sanitizeNarrationMessages', () => {
+	it('entfernt interne Rollen und begrenzt auf sichtbare Nachrichten', () => {
+		const sanitized = sanitizeNarrationMessages(
+			[
+				{ role: 'system', content: 'ignore' },
+				{ role: 'user', content: '  Hallo  ' },
+				{ role: 'tool', content: 'ignore', name: 'search_persons' },
+				{ role: 'assistant', content: ' Antwort ', tool_calls: [{ id: 'x' }] },
+				{ role: 'user', content: '' }
+			],
+			2
+		);
+
+		expect(sanitized).toEqual([
+			{ role: 'user', content: 'Hallo' },
+			{ role: 'assistant', content: 'Antwort' }
+		]);
+	});
+});
+
+describe('isNarrationWriteApproval', () => {
+	it('erkennt kurze Bestätigungen konservativ', () => {
+		expect(isNarrationWriteApproval([{ role: 'user', content: 'Ja' }])).toBe(true);
+		expect(isNarrationWriteApproval([{ role: 'user', content: 'bitte irgendwie machen' }])).toBe(false);
 	});
 });
 

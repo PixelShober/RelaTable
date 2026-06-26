@@ -4,7 +4,7 @@
 	import { fade, scale } from 'svelte/transition';
 
 	type ChatMsg = { role: 'user' | 'assistant'; content: string };
-	type ApiMsg = { role: string; content: string | null; [k: string]: unknown };
+	type ApiMsg = { role: 'user' | 'assistant'; content: string };
 
 	const BARS = 20;
 	const SR: any =
@@ -214,8 +214,10 @@
 		error = '';
 		phase = 'processing';
 		convoOpen = true;
+		const userMessage: ApiMsg = { role: 'user', content: text };
+		const nextHistory: ApiMsg[] = [...history, userMessage].slice(-16);
 		convo = [...convo, { role: 'user', content: text }];
-		history = [...history, { role: 'user', content: text }];
+		history = nextHistory;
 		busy = true;
 		const ctrl = new AbortController();
 		const timer = window.setTimeout(() => ctrl.abort(), 150_000);
@@ -223,14 +225,16 @@
 			const res = await fetch('/api/narrate', {
 				method: 'POST',
 				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ messages: history }),
+				body: JSON.stringify({ messages: nextHistory }),
 				signal: ctrl.signal
 			});
 			if (!res.ok)
 				throw new Error((await res.json().catch(() => ({})))?.message || `Fehler ${res.status}`);
 			const resp = await res.json();
-			history = resp.messages;
-			convo = [...convo, { role: 'assistant', content: resp.reply || '(keine Antwort)' }];
+			const reply = resp.reply || '(keine Antwort)';
+			const assistantMessage: ApiMsg = { role: 'assistant', content: reply };
+			history = [...nextHistory, assistantMessage].slice(-16);
+			convo = [...convo, { role: 'assistant', content: reply }];
 			if (resp.wrote) {
 				phase = 'updating';
 				await invalidateAll();

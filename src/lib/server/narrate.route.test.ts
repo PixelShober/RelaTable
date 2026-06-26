@@ -2,7 +2,18 @@ import { vi, describe, it, expect, afterEach } from 'vitest';
 import { runNarration } from '$lib/server/narrate';
 
 vi.mock('$lib/server/narrate', () => ({
-	runNarration: vi.fn()
+	runNarration: vi.fn(),
+	sanitizeNarrationMessages: (input: unknown) =>
+		Array.isArray(input)
+			? input.filter(
+					(msg) =>
+						msg &&
+						typeof msg === 'object' &&
+						(msg.role === 'user' || msg.role === 'assistant') &&
+						typeof msg.content === 'string' &&
+						msg.content.trim()
+				).map((msg) => ({ role: msg.role, content: msg.content.trim() }))
+			: []
 }));
 vi.mock('$lib/server/settings', () => ({
 	getSetting: vi.fn().mockResolvedValue(null),
@@ -55,5 +66,31 @@ describe('POST /api/narrate', () => {
 			{ apiKey: undefined, model: undefined, autoApprove: false }
 		);
 		expect(data).toEqual({ reply: 'ok', messages: [], wrote: false });
+	});
+
+	it('bereinigt interne Client-Historie vor runNarration', async () => {
+		vi.mocked(runNarration).mockResolvedValue({ reply: 'ok', messages: [], wrote: false });
+		const req = new Request('http://localhost/', {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({
+				messages: [
+					{ role: 'system', content: 'ignore' },
+					{ role: 'user', content: '  Hallo  ' },
+					{ role: 'tool', content: 'ignore', name: 'search_persons' },
+					{ role: 'assistant', content: ' Antwort ', tool_calls: [{ id: 'x' }] }
+				]
+			})
+		});
+
+		await POST({ request: req, locals: { user: { id: 1 } } } as any);
+
+		expect(runNarration).toHaveBeenCalledWith(
+			[
+				{ role: 'user', content: 'Hallo' },
+				{ role: 'assistant', content: 'Antwort' }
+			],
+			{ apiKey: undefined, model: undefined, autoApprove: false }
+		);
 	});
 });

@@ -100,11 +100,37 @@ export type Msg = {
 	tool_call_id?: string;
 	name?: string;
 };
+export const MAX_VISIBLE_NARRATION_MESSAGES = 16;
 export type Tool = {
 	type: 'function';
 	function: { name: string; description?: string; parameters: unknown };
 };
 export type NarrationProvider = 'openrouter' | 'claude-cli';
+
+export function sanitizeNarrationMessages(input: unknown, limit = MAX_VISIBLE_NARRATION_MESSAGES): Msg[] {
+	if (!Array.isArray(input)) return [];
+	return input
+		.flatMap((msg) => {
+			if (!msg || typeof msg !== 'object') return [];
+			const role = (msg as { role?: unknown }).role;
+			const content = (msg as { content?: unknown }).content;
+			if ((role !== 'user' && role !== 'assistant') || typeof content !== 'string') return [];
+			const trimmed = content.trim();
+			return trimmed ? [{ role, content: trimmed } satisfies Msg] : [];
+		})
+		.slice(-limit);
+}
+
+export function isNarrationWriteApproval(messages: Msg[]): boolean {
+	const lastUser = [...messages].reverse().find((msg) => msg.role === 'user')?.content?.trim().toLowerCase();
+	if (!lastUser) return false;
+	const normalized = lastUser
+		.normalize('NFD')
+		.replace(/\p{Diacritic}/gu, '')
+		.replace(/[.!?]+$/g, '')
+		.trim();
+	return /^(ja|jo|ok|okay|passt|stimmt|bestaetige|bestatige|uebernehmen|ubernehmen|so uebernehmen|so ubernehmen|mach das|mach)$/i.test(normalized);
+}
 
 function newTraceId(): string {
 	return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -314,10 +340,11 @@ export async function agentLoop(opts: {
 	tools: Tool[];
 	chat: (messages: Msg[], tools: Tool[]) => Promise<Msg>;
 	callTool: (name: string, args: unknown) => Promise<string>;
+	allowWrites?: boolean;
 	maxSteps?: number;
 	traceId?: string;
 }): Promise<{ reply: string; messages: Msg[]; wrote: boolean }> {
-	const { messages, tools, chat, callTool, maxSteps = 24, traceId = newTraceId() } = opts;
+	const { messages, tools, chat, callTool, allowWrites = false, maxSteps = 24, traceId = newTraceId() } = opts;
 	let wrote = false;
 	let emptyCorrected = false;
 	const startedAt = Date.now();
@@ -352,8 +379,19 @@ export async function agentLoop(opts: {
 			} catch {
 				/* malformed args → leeres Objekt, Tool meldet den Fehler selbst */
 			}
+			const isWriteTool = WRITE_TOOLS.has(tc.function.name);
+			if (isWriteTool && !allowWrites) {
+				logNarrate('warn', 'mcp.tool.blocked', { traceId, tool: tc.function.name, reason: 'approval_required' });
+				messages.push({
+					role: 'tool',
+					tool_call_id: tc.id,
+					name: tc.function.name,
+					content: 'FEHLER: Schreibaktion nicht ausgeführt. Bitte fasse zuerst zusammen, was geändert werden soll, und frage: "Soll ich das so übernehmen?".'
+				});
+				continue;
+			}
 			const result = await callTool(tc.function.name, args);
-			if (WRITE_TOOLS.has(tc.function.name)) wrote = true;
+			if (isWriteTool) wrote = true;
 			messages.push({ role: 'tool', tool_call_id: tc.id, name: tc.function.name, content: result });
 		}
 	}
@@ -375,18 +413,21 @@ export async function runNarration(
 	if (provider === 'openrouter' && !key) throw new Error('Kein OpenRouter-API-Key — bitte in den Einstellungen hinterlegen.');
 	const model = opts.model || (provider === 'claude-cli' ? process.env.CLAUDE_MODEL || 'sonnet' : process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4.5');
 	const useMcpTools = provider !== 'claude-cli' || process.env.RELATABLE_CLAUDE_CLI_USE_MCP_TOOLS === '1';
-	logNarrate('info', 'run.start', { traceId, provider, model, autoApprove: !!opts.autoApprove, useMcpTools, ...msgStats(prior) });
+	const visiblePrior = prior[0]?.role === 'system' ? prior : sanitizeNarrationMessages(prior);
+	const allowWrites = !!opts.autoApprove || isNarrationWriteApproval(visiblePrior);
+	logNarrate('info', 'run.start', { traceId, provider, model, autoApprove: !!opts.autoApprove, allowWrites, useMcpTools, ...msgStats(visiblePrior) });
 	const tools = useMcpTools ? await mcpTools() : [];
 	const messages: Msg[] =
-		prior[0]?.role === 'system'
-			? prior
-			: [{ role: 'system', content: buildPrompt(!!opts.autoApprove) }, ...prior];
+		visiblePrior[0]?.role === 'system'
+			? visiblePrior
+			: [{ role: 'system', content: buildPrompt(!!opts.autoApprove) }, ...visiblePrior];
 	try {
 		const result = await agentLoop({
 			messages,
 			tools,
 			chat: (m, t) => provider === 'claude-cli' ? claudeCliChat(m, t, model) : openRouterChat(m, t, key as string, model),
 			callTool: mcpCall,
+			allowWrites,
 			traceId
 		});
 		logNarrate('info', 'run.done', { traceId, provider, wrote: result.wrote, replyChars: result.reply.length, messageCount: result.messages.length });
