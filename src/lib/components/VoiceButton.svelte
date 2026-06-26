@@ -145,42 +145,21 @@
 			convoOpen = true;
 			return;
 		}
-		try {
-			stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-		} catch (e) {
-			logClientEvent('speech.microphone_failed', {
-				errorName: e instanceof Error ? e.name : undefined,
-				errorMessage: e instanceof Error ? e.message : String(e)
-			});
-			error = 'Kein Mikrofonzugriff — bitte Browser-Berechtigung prüfen.';
-			phase = 'error';
-			return;
-		}
-		ctx = new AudioContext();
-		const src = ctx.createMediaStreamSource(stream);
-		const an = ctx.createAnalyser();
-		an.fftSize = 128;
-		src.connect(an);
-		const freq = new Uint8Array(an.frequencyBinCount);
+		// Use synthetic pulse bars; a parallel WebAudio mic stream can starve SpeechRecognition on Android.
+		const isAndroid = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent);
+		logClientEvent('speech.visualizer_fallback', { reason: 'sr_active', android: isAndroid });
 		active = true;
+		let t = 0;
 		const tick = () => {
-			an.getByteFrequencyData(freq);
-			const next = new Array(BARS);
-			const usable = Math.max(BARS, Math.floor(freq.length * 0.6));
-			const span = Math.floor(usable / BARS);
-			for (let i = 0; i < BARS; i++) {
-				let m = 0;
-				for (let j = 0; j < span; j++) m = Math.max(m, freq[i * span + j]);
-				next[i] = m / 255;
-			}
-			bars = next;
+			t += 0.08;
+			bars = Array.from({ length: BARS }, (_, i) => 0.15 + 0.12 * Math.sin(t + i * 0.4));
 			raf = requestAnimationFrame(tick);
 		};
 		tick();
 
 		rec = new SR();
 		rec.lang = 'de-DE';
-		rec.continuous = true;
+		rec.continuous = !isAndroid;
 		rec.interimResults = true;
 		rec.onresult = (e: any) => {
 			let interim = '';
