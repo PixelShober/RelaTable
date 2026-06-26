@@ -162,7 +162,9 @@
 			{ selector: 'node[degree < 6]', style: { width: 26, height: 26 } },
 			{ selector: 'node[?isolated]', style: { 'border-style': 'dashed', 'border-color': '#bbb', 'background-color': '#fafafa' } },
 			{ selector: 'node.faded', style: { opacity: 0.12 } },
-			{ selector: 'node.dim', style: { opacity: 0.1 } }, // Spotlight: smooth fade, keeps node in place
+			// Spotlight: smooth fade, keeps node in place. Non-neighbours in focus
+			// mode must not show Cytoscape's tap overlay or receive events.
+			{ selector: 'node.dim', style: { opacity: 0.1, events: 'no', 'overlay-opacity': 0 } },
 			{ selector: 'node.hidden', style: { display: 'none' } },
 			{ selector: 'node.search-hit', style: { 'border-color': '#8fa0bf', 'border-width': 3, 'z-index': 30 } },
 			{
