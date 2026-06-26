@@ -37,13 +37,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		rawMessageCount,
 		messageCount: messages.length
 	});
-	const [apiKey, model, autoApprove] = await Promise.all([
+	const [apiKey, model, autoApprove, pragmaticMode] = await Promise.all([
 		getSetting(locals.user.id, SETTING_KEYS.openRouterApiKey),
 		getSetting(locals.user.id, SETTING_KEYS.openRouterModel),
-		getBoolSetting(locals.user.id, SETTING_KEYS.narrateAutoApprove, false)
+		getBoolSetting(locals.user.id, SETTING_KEYS.narrateAutoApprove, false),
+		getBoolSetting(locals.user.id, SETTING_KEYS.narratePragmaticMode, false)
 	]);
 	try {
-		const result = await runNarration(messages, { apiKey: apiKey ?? undefined, model: model ?? undefined, autoApprove });
+		const result = await runNarration(messages, { apiKey: apiKey ?? undefined, model: model ?? undefined, autoApprove, pragmaticMode });
 		logNarrateRoute('info', 'request.done', {
 			traceId: trace,
 			userId: locals.user.id,

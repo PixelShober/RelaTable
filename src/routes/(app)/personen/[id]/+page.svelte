@@ -24,6 +24,7 @@
 <svelte:head><title>{data.person.name} – RelaTable</title></svelte:head>
 
 <Topbar title={data.person.name} back={{ href: '/personen', label: 'Personen' }}>
+	<a class="btn btn-sm" href={`/personen/${data.person.id}/review`}>Review</a>
 	<a class="btn btn-sm" href={`/personen/${data.person.id}/bearbeiten`}>Bearbeiten</a>
 	<button class="btn btn-warn btn-sm" onclick={() => { confirmDelete = true; deleteAck = false; }}>Löschen</button>
 </Topbar>

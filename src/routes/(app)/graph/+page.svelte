@@ -463,6 +463,7 @@
 			style="left:{Math.min(menu.x, (container?.clientWidth ?? 300) - 184)}px; top:{menu.y}px">
 			<a class="block border-b border-line px-3 py-2 hover:bg-bg" href={`/personen/${menu.id}/bearbeiten?return=graph`}>Profil bearbeiten</a>
 			<a class="block border-b border-line px-3 py-2 hover:bg-bg" href={`/personen/${menu.id}/bearbeiten?pick=1&return=graph`}>Bild ändern</a>
+			<a class="block border-b border-line px-3 py-2 hover:bg-bg" href={`/personen/${menu.id}/review`}>Review Verbindung</a>
 			<button class="block w-full border-b border-line px-3 py-2 text-left hover:bg-bg" onclick={() => menu && focusOn(menu.id)}>Fokussieren</button>
 			<a class="block px-3 py-2 hover:bg-bg" href={`/karte?person=${menu.id}`}>Auf Karte</a>
 		</div>

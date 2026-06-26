@@ -21,7 +21,8 @@ vi.mock('$lib/server/settings', () => ({
 	SETTING_KEYS: {
 		openRouterApiKey: 'openRouterApiKey',
 		openRouterModel: 'openRouterModel',
-		narrateAutoApprove: 'narrateAutoApprove'
+		narrateAutoApprove: 'narrateAutoApprove',
+		narratePragmaticMode: 'narratePragmaticMode'
 	}
 }));
 
@@ -63,7 +64,7 @@ describe('POST /api/narrate', () => {
 
 		expect(runNarration).toHaveBeenCalledWith(
 			msgs,
-			{ apiKey: undefined, model: undefined, autoApprove: false }
+			{ apiKey: undefined, model: undefined, autoApprove: false, pragmaticMode: false }
 		);
 		expect(data).toEqual({ reply: 'ok', messages: [], wrote: false });
 	});
@@ -90,7 +91,7 @@ describe('POST /api/narrate', () => {
 				{ role: 'user', content: 'Hallo' },
 				{ role: 'assistant', content: 'Antwort' }
 			],
-			{ apiKey: undefined, model: undefined, autoApprove: false }
+			{ apiKey: undefined, model: undefined, autoApprove: false, pragmaticMode: false }
 		);
 	});
 });

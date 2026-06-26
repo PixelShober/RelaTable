@@ -165,6 +165,12 @@ describe('buildPrompt', () => {
 	it('autoApprove=false → FREIGABE: BESTÄTIGUNG ERFORDERLICH', () => {
 		expect(buildPrompt(false)).toContain('FREIGABE: BESTÄTIGUNG ERFORDERLICH');
 	});
+
+	it('pragmaticMode=true → enthält No-Questions-Regeln nur im gekoppelten Modus', () => {
+		expect(buildPrompt(true, true)).toContain('MODUS: OHNE RÜCKFRAGEN');
+		expect(buildPrompt(true, true)).toContain('Lege erwähnte Personen notfalls nur mit Namen an');
+		expect(buildPrompt(true, false)).not.toContain('MODUS: OHNE RÜCKFRAGEN');
+	});
 });
 
 describe('sanitizeNarrationMessages', () => {

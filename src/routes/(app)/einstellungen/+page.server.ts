@@ -6,7 +6,7 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const ownerId = locals.user!.id;
-	const [categories, types, exclusions, eventTypes, user, hideSensitive, aiKey, aiModel, aiAutoApprove] =
+	const [categories, types, exclusions, eventTypes, user, hideSensitive, aiKey, aiModel, aiAutoApprove, aiPragmaticMode] =
 		await Promise.all([
 			db.relationshipCategory.findMany({ orderBy: { sortOrder: 'asc' } }),
 			db.relationshipType.findMany({ include: { category: true } }),
@@ -16,7 +16,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			getBoolSetting(ownerId, SETTING_KEYS.hideSensitiveByDefault, true),
 			getSetting(ownerId, SETTING_KEYS.openRouterApiKey),
 			getSetting(ownerId, SETTING_KEYS.openRouterModel),
-			getBoolSetting(ownerId, SETTING_KEYS.narrateAutoApprove, false)
+			getBoolSetting(ownerId, SETTING_KEYS.narrateAutoApprove, false),
+			getBoolSetting(ownerId, SETTING_KEYS.narratePragmaticMode, false)
 		]);
 
 	const byCategory = categories.map((c) => ({
@@ -39,7 +40,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 		// Key selbst nie an den Client geben — nur ob gesetzt. Modell ist nicht geheim.
 		aiKeySet: !!aiKey,
 		aiModel: aiModel ?? '',
-		aiAutoApprove
+		aiAutoApprove,
+		aiPragmaticMode
 	};
 };
 

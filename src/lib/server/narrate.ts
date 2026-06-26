@@ -88,9 +88,23 @@ FREIGABE: AUTOMATISCH
 - Fasse DANACH immer auf, welche Personen/Verbindungen/Ereignisse du angelegt oder
   geändert hast — einzeln aufgelistet.`;
 
+const PRAGMATIC_MODE = `
+MODUS: OHNE RÜCKFRAGEN, PRAGMATISCH MINIMAL
+- Stelle keine Rückfragen. Arbeite mit dem, was der Nutzer gesagt hat.
+- Erfinde keine Fakten: Unbekanntes bleibt leer oder wird weggelassen.
+- Lege erwähnte Personen notfalls nur mit Namen an, auch wenn noch keine Verbindung
+  bekannt ist.
+- Lege Verbindungen nur an, wenn die allgemeine Beziehung oder ein valider Typ sicher
+  genannt ist. Ist nur ein gemeinsames Ereignis bekannt, lege stattdessen das Ereignis
+  mit den beteiligten Personen an.
+- Lege Ereignisse mit minimalem sicheren Inhalt an: Name/Zusammenfassung, bekannte
+  Teilnehmer, bekannte Zeit-/Ortsangaben. Fehlende Details nicht nachfragen.
+- Fasse danach kurz zusammen, was angelegt oder aktualisiert wurde und welche Details
+  bewusst offen geblieben sind.`;
+
 /** System-Prompt je nach Freigabe-Modus. */
-export function buildPrompt(autoApprove: boolean): string {
-	return SYSTEM_PROMPT + '\n' + (autoApprove ? APPROVAL_AUTO : APPROVAL_MANUAL);
+export function buildPrompt(autoApprove: boolean, pragmaticMode = false): string {
+	return SYSTEM_PROMPT + '\n' + (autoApprove ? APPROVAL_AUTO : APPROVAL_MANUAL) + (pragmaticMode ? '\n' + PRAGMATIC_MODE : '');
 }
 
 export type Msg = {
@@ -405,7 +419,7 @@ export async function agentLoop(opts: {
  */
 export async function runNarration(
 	prior: Msg[],
-	opts: { apiKey?: string; model?: string; autoApprove?: boolean; provider?: NarrationProvider } = {}
+	opts: { apiKey?: string; model?: string; autoApprove?: boolean; pragmaticMode?: boolean; provider?: NarrationProvider } = {}
 ): Promise<{ reply: string; messages: Msg[]; wrote: boolean }> {
 	const traceId = newTraceId();
 	const provider = opts.provider || (process.env.RELATABLE_NARRATE_PROVIDER as NarrationProvider | undefined) || 'openrouter';
@@ -415,12 +429,13 @@ export async function runNarration(
 	const useMcpTools = provider !== 'claude-cli' || process.env.RELATABLE_CLAUDE_CLI_USE_MCP_TOOLS === '1';
 	const visiblePrior = prior[0]?.role === 'system' ? prior : sanitizeNarrationMessages(prior);
 	const allowWrites = !!opts.autoApprove || isNarrationWriteApproval(visiblePrior);
-	logNarrate('info', 'run.start', { traceId, provider, model, autoApprove: !!opts.autoApprove, allowWrites, useMcpTools, ...msgStats(visiblePrior) });
+	const pragmaticMode = !!opts.autoApprove && !!opts.pragmaticMode;
+	logNarrate('info', 'run.start', { traceId, provider, model, autoApprove: !!opts.autoApprove, pragmaticMode, allowWrites, useMcpTools, ...msgStats(visiblePrior) });
 	const tools = useMcpTools ? await mcpTools() : [];
 	const messages: Msg[] =
 		visiblePrior[0]?.role === 'system'
 			? visiblePrior
-			: [{ role: 'system', content: buildPrompt(!!opts.autoApprove) }, ...visiblePrior];
+			: [{ role: 'system', content: buildPrompt(!!opts.autoApprove, pragmaticMode) }, ...visiblePrior];
 	try {
 		const result = await agentLoop({
 			messages,

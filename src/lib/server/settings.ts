@@ -10,7 +10,9 @@ export const SETTING_KEYS = {
 	openRouterApiKey: 'openRouterApiKey',
 	openRouterModel: 'openRouterModel',
 	// true = KI schreibt direkt; false (Standard) = erst Zusammenfassung + Bestätigung.
-	narrateAutoApprove: 'narrateAutoApprove'
+	narrateAutoApprove: 'narrateAutoApprove',
+	// An: KI legt ohne Rückfragen pragmatisch-minimal an. Nur wirksam zusammen mit narrateAutoApprove=true.
+	narratePragmaticMode: 'narratePragmaticMode'
 } as const;
 
 export async function getSetting(ownerId: number, key: string): Promise<string | null> {

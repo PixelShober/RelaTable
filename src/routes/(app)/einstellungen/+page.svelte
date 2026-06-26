@@ -17,9 +17,11 @@
 	let aiKeySet = $state(data.aiKeySet);
 	let aiModel = $state(data.aiModel || 'anthropic/claude-sonnet-4.5');
 	let aiAutoApprove = $state(data.aiAutoApprove);
+	let aiPragmaticMode = $state(data.aiPragmaticMode);
 	let aiSaved = $state(false);
 
 	async function saveAi() {
+		if (!aiAutoApprove) aiPragmaticMode = false;
 		if (aiKey.trim()) {
 			await setSetting('openRouterApiKey', aiKey.trim()); // leer lassen = unverändert
 			aiKeySet = true;
@@ -27,6 +29,7 @@
 		}
 		await setSetting('openRouterModel', aiModel.trim());
 		await setSetting('narrateAutoApprove', String(aiAutoApprove));
+		await setSetting('narratePragmaticMode', String(aiAutoApprove && aiPragmaticMode));
 		aiSaved = true;
 		setTimeout(() => (aiSaved = false), 2000);
 	}
@@ -202,12 +205,29 @@
 					</select>
 				</label>
 				<label class="flex items-start gap-2">
-					<input type="checkbox" bind:checked={aiAutoApprove} class="mt-0.5" />
+					<input
+						type="checkbox"
+						bind:checked={aiAutoApprove}
+						onchange={() => {
+							if (!aiAutoApprove) aiPragmaticMode = false;
+						}}
+						class="mt-0.5"
+					/>
 					<span>
 						Automatisch übernehmen
 						<span class="block text-[11px] text-mut">
 							An: Die KI legt Personen/Ereignisse direkt an. Aus (Standard): Sie fasst erst
 							zusammen, was sie anlegen würde, und fragt um Bestätigung.
+						</span>
+					</span>
+				</label>
+				<label class="flex items-start gap-2 {aiAutoApprove ? '' : 'opacity-55'}">
+					<input type="checkbox" bind:checked={aiPragmaticMode} disabled={!aiAutoApprove} class="mt-0.5" />
+					<span>
+						Ohne Rückfragen minimal anlegen
+						<span class="block text-[11px] text-mut">
+							Nur mit automatischer Übernahme: Die KI fragt fehlende Details nicht ab,
+							sondern legt sichere Mindestdaten an und lässt Unbekanntes leer.
 						</span>
 					</span>
 				</label>

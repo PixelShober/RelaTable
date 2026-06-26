@@ -20,4 +20,12 @@ test.describe('Graph (SCR-020/021)', () => {
 		await page.getByRole('button', { name: '‹ Zurück' }).click();
 		await expect(page).toHaveURL(/\/graph$/);
 	});
+
+	test('person review page is reachable and shows review sections', async ({ page }) => {
+		await page.goto('/personen/1/review');
+		await expect(page.getByText(/Review: /)).toBeVisible();
+		await expect(page.getByText('Offene Fragen')).toBeVisible();
+		await expect(page.getByText('Direkte Verbindungen', { exact: true })).toBeVisible();
+		await expect(page.getByText('Gemeinsame Ereignisse')).toBeVisible();
+	});
 });
