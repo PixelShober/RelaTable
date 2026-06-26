@@ -27,6 +27,7 @@ function toPeriods(periods: { relationshipTypeId: number; validFrom: Date | null
 export interface GraphNode {
 	id: number;
 	name: string;
+	aliases: string[];
 	image: string | null;
 	city: string | null;
 	degree: number;
@@ -42,7 +43,7 @@ export interface GraphEdge {
 /** Full graph (SCR-020). Edge color = current dominant type (VAR-04=A). */
 export async function loadGraph(ownerId: number): Promise<{ nodes: GraphNode[]; edges: GraphEdge[] }> {
 	const [persons, connections, types] = await Promise.all([
-		db.person.findMany({ where: { ownerId }, include: { location: true } }),
+		db.person.findMany({ where: { ownerId }, include: { location: true, aliases: { orderBy: { alias: 'asc' } } } }),
 		db.connection.findMany({
 			where: { ownerId },
 			include: { periods: { select: { relationshipTypeId: true, validFrom: true, validTo: true } } }
@@ -67,6 +68,7 @@ export async function loadGraph(ownerId: number): Promise<{ nodes: GraphNode[]; 
 	const nodes: GraphNode[] = persons.map((p) => ({
 		id: p.id,
 		name: p.name,
+		aliases: p.aliases.map((entry) => entry.alias),
 		image: p.profileImagePath ? `/uploads/${p.profileImagePath}` : p.profileImageUrl,
 		city: p.location?.city ?? null,
 		degree: degree.get(p.id) ?? 0

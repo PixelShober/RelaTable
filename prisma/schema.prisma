@@ -75,12 +75,24 @@ model Person {
   updatedAt       DateTime  @updatedAt
 
   socialAccounts SocialAccount[]
+  aliases       PersonAlias[]
   connectionsLow  Connection[] @relation("PersonLow")
   connectionsHigh Connection[] @relation("PersonHigh")
   eventParticipations EventParticipant[]
 
   @@index([ownerId])
   @@index([name])
+}
+
+model PersonAlias {
+  id        Int      @id @default(autoincrement())
+  personId  Int
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  alias     String
+  createdAt DateTime @default(now())
+
+  @@unique([personId, alias])
+  @@index([alias])
 }
 
 model SocialAccount {

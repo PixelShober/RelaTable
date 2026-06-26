@@ -14,10 +14,14 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		db.person.findMany({
 			where: {
 				ownerId,
-				...(q ? { name: { contains: q } } : {}),
+				...(q
+					? {
+							OR: [{ name: { contains: q } }, { aliases: { some: { alias: { contains: q } } } }]
+					  }
+					: {}),
 				...(ort.length ? { location: { is: { city: { in: ort } } } } : {})
 			},
-			include: { location: true },
+			include: { location: true, aliases: { orderBy: { alias: 'asc' } } },
 			orderBy: { name: sort }
 		}),
 		db.connection.findMany({
@@ -45,6 +49,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	let items = persons.map((p) => ({
 		id: p.id,
 		name: p.name,
+		aliases: p.aliases.map((entry) => entry.alias),
 		city: p.location?.city ?? null,
 		image: p.profileImagePath ? `/uploads/${p.profileImagePath}` : p.profileImageUrl,
 		degree: degree.get(p.id) ?? 0

@@ -8,13 +8,14 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const id = Number(params.id);
 	const person = await db.person.findFirst({
 		where: { id, ownerId: locals.user!.id },
-		include: { location: true }
+		include: { location: true, aliases: { orderBy: { alias: 'asc' } } }
 	});
 	if (!person) throw error(404, 'Person nicht gefunden');
 
 	return {
 		initial: {
 			name: person.name,
+			aliases: person.aliases.map((entry) => entry.alias).join('\n'),
 			dateOfBirth: person.dateOfBirth ? person.dateOfBirth.toISOString().slice(0, 10) : '',
 			gender: person.gender ?? '',
 			city: person.location?.city ?? '',
@@ -35,15 +36,23 @@ export const actions: Actions = {
 		const result = await processPersonForm(await request.formData());
 		if (!result.ok) return fail(400, { errors: result.errors, values: result.values });
 
-		const { profileImagePath, profileImageUrl, ...rest } = result.data!;
+		const { aliases, profileImagePath, profileImageUrl, ...rest } = result.data!;
 		const data: Record<string, unknown> = { ...rest };
 		// Only overwrite the image when the user supplied a new one.
 		if (result.imageProvided) {
 			data.profileImagePath = profileImagePath;
 			data.profileImageUrl = profileImageUrl;
 		}
-
-		await db.person.update({ where: { id }, data });
+		await db.person.update({
+			where: { id },
+			data: {
+				...data,
+				aliases: {
+					deleteMany: {},
+					create: aliases.map((alias) => ({ alias }))
+				}
+			}
+		});
 		// Came from the graph context menu → jump back to the graph (focus is restored from localStorage).
 		throw redirect(303, url.searchParams.get('return') === 'graph' ? '/graph' : `/personen/${id}`);
 	}

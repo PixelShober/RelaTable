@@ -1,10 +1,11 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import Topbar from '$lib/components/Topbar.svelte';
-	let { data } = $props();
+	let { data, form } = $props();
 
 	let container: HTMLDivElement;
 	let cy: any = null;
@@ -20,6 +21,12 @@
 	let searchTimer: ReturnType<typeof setTimeout>;
 	let longPressTimer: ReturnType<typeof setTimeout> | null = null;
 	let suppressTapUntil = 0;
+	let mergeDialog = $state<null | {
+		sourceId: number;
+		sourceName: string;
+		candidates: { id: number; name: string; aliases: string[]; score: number }[];
+		selectedId: number | null;
+	}>(null);
 
 	// Filter only after the user pauses typing for 500ms.
 	function onSearchInput() {
@@ -33,9 +40,91 @@
 	});
 	const focusName = $derived(data.graph.nodes.find((n) => n.id === focusId)?.name ?? null);
 
+	function normalizeName(value: string) {
+		return value
+			.normalize('NFD')
+			.replace(/\p{Diacritic}/gu, '')
+			.toLowerCase()
+			.replace(/[^a-z0-9\s]/g, ' ')
+			.replace(/\s+/g, ' ')
+			.trim();
+	}
+	function bigrams(value: string) {
+		if (value.length < 2) return value ? [value] : [];
+		const grams: string[] = [];
+		for (let i = 0; i < value.length - 1; i += 1) grams.push(value.slice(i, i + 2));
+		return grams;
+	}
+	function diceCoefficient(a: string, b: string) {
+		const left = bigrams(a);
+		const right = bigrams(b);
+		if (!left.length || !right.length) return 0;
+		const counts = new Map<string, number>();
+		for (const gram of left) counts.set(gram, (counts.get(gram) ?? 0) + 1);
+		let overlap = 0;
+		for (const gram of right) {
+			const remaining = counts.get(gram) ?? 0;
+			if (remaining > 0) {
+				overlap += 1;
+				counts.set(gram, remaining - 1);
+			}
+		}
+		return (2 * overlap) / (left.length + right.length);
+	}
+	function similarity(a: string, b: string) {
+		const na = normalizeName(a);
+		const nb = normalizeName(b);
+		if (!na || !nb) return 0;
+		if (na === nb) return 1;
+		if (na.includes(nb) || nb.includes(na)) return 0.9;
+		const aParts = na.split(' ');
+		const bParts = nb.split(' ');
+		const firstA = aParts[0] ?? na;
+		const firstB = bParts[0] ?? nb;
+		const lastA = aParts.at(-1) ?? na;
+		const lastB = bParts.at(-1) ?? nb;
+		const prefix = firstA.startsWith(firstB) || firstB.startsWith(firstA) || lastA.startsWith(lastB) || lastB.startsWith(lastA) ? 0.82 : 0;
+		return Math.max(diceCoefficient(na, nb), prefix, diceCoefficient(firstA, firstB) * 0.7 + diceCoefficient(lastA, lastB) * 0.3);
+	}
+	function isInteractiveNode(node: any) {
+		if (focusId == null) return true;
+		const focused = cy?.getElementById(String(focusId));
+		if (!focused || focused.empty()) return true;
+		return node.id() === String(focusId) || focused.neighborhood('node').contains(node);
+	}
+	function isInteractiveEdge(edge: any) {
+		if (focusId == null) return true;
+		const focused = cy?.getElementById(String(focusId));
+		if (!focused || focused.empty()) return true;
+		return focused.closedNeighborhood('edge').contains(edge);
+	}
+	function openMergeDialog(sourceId: number) {
+		const source = data.graph.nodes.find((node) => node.id === sourceId);
+		if (!source) return;
+		const sourceTerms = [source.name, ...source.aliases];
+		const candidates = data.graph.nodes
+			.filter((node) => node.id !== sourceId)
+			.map((node) => {
+				const nodeTerms = [node.name, ...node.aliases];
+				const score = Math.max(...sourceTerms.flatMap((left) => nodeTerms.map((right) => similarity(left, right))));
+				return { id: node.id, name: node.name, aliases: node.aliases, score };
+			})
+			.filter((node) => node.score >= 0.34)
+			.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
+			.slice(0, 8);
+		mergeDialog = {
+			sourceId,
+			sourceName: source.name,
+			candidates,
+			selectedId: candidates[0]?.id ?? null
+		};
+		menu = null;
+		panel = null;
+	}
+
 	function buildElements() {
 		const nodes = data.graph.nodes.map((n) => ({
-			data: { id: String(n.id), name: n.name, image: n.image, degree: n.degree, isolated: n.degree === 0 }
+			data: { id: String(n.id), name: n.name, aliases: n.aliases, image: n.image, degree: n.degree, isolated: n.degree === 0 }
 		}));
 		const edges = data.graph.edges.map((e) => ({
 			data: { id: e.id, source: String(e.source), target: String(e.target), color: e.color }
@@ -116,15 +205,20 @@
 		cy.on('tap', 'node', (evt: any) => {
 			if (Date.now() < suppressTapUntil) return;
 			const n = evt.target;
+			if (!isInteractiveNode(n)) return;
 			const id = Number(n.id());
 			const meta = data.graph.nodes.find((x) => x.id === id)!;
 			const pos = n.renderedPosition();
 			panel = { id, name: meta.name, city: meta.city, degree: meta.degree, x: pos.x, y: pos.y };
 			menu = null;
 		});
-		cy.on('dbltap', 'node', (evt: any) => focusOn(Number(evt.target.id())));
+		cy.on('dbltap', 'node', (evt: any) => {
+			if (!isInteractiveNode(evt.target)) return;
+			focusOn(Number(evt.target.id()));
+		});
 		// Right-click opens the context menu (browser menu suppressed on the wrapper div).
 		const openMenu = (evt: any) => {
+			if (!isInteractiveNode(evt.target)) return;
 			const id = Number(evt.target.id());
 			const meta = data.graph.nodes.find((x) => x.id === id)!;
 			const pos = evt.renderedPosition ?? evt.target.renderedPosition();
@@ -151,6 +245,7 @@
 			openMenu(evt);
 		});
 		cy.on('tap', 'edge', (evt: any) => {
+			if (!isInteractiveEdge(evt.target)) return;
 			const e = evt.target;
 			goto(`/pair/${e.data('source')}-${e.data('target')}`);
 		});
@@ -158,6 +253,7 @@
 			if (evt.target === cy) {
 				panel = null;
 				menu = null;
+				mergeDialog = null;
 			}
 		});
 		cy.on('pan zoom', () => {
@@ -186,7 +282,7 @@
 	// lost ring flare, scrambled neighbour ring). Only a real change (voice write) rebuilds.
 	function graphSignature() {
 		return (
-			data.graph.nodes.map((n) => `${n.id}:${n.name}:${n.image}:${n.degree}`).join(',') +
+			data.graph.nodes.map((n) => `${n.id}:${n.name}:${n.aliases.join('|')}:${n.image}:${n.degree}`).join(',') +
 			'|' +
 			data.graph.edges.map((e) => `${e.source}-${e.target}-${e.color}`).join(',')
 		);
@@ -277,13 +373,19 @@
 	}
 
 	function focusOn(id: number) {
+		if (focusId != null) {
+			const node = cy?.getElementById(String(id));
+			if (node && !node.empty() && !isInteractiveNode(node)) return;
+		}
 		panel = null;
 		menu = null;
+		mergeDialog = null;
 		localStorage.setItem('graph.focus', String(id)); // remember across navigation
 		goto(`/graph?focus=${id}`, { noScroll: true, keepFocus: true });
 	}
 	function clearFocus() {
 		localStorage.removeItem('graph.focus');
+		mergeDialog = null;
 		goto('/graph', { noScroll: true, keepFocus: true });
 	}
 
@@ -461,11 +563,56 @@
 	{#if menu}
 		<div class="absolute z-20 w-44 overflow-hidden rounded-lg border border-line bg-card text-sm shadow-lg"
 			style="left:{Math.min(menu.x, (container?.clientWidth ?? 300) - 184)}px; top:{menu.y}px">
-			<a class="block border-b border-line px-3 py-2 hover:bg-bg" href={`/personen/${menu.id}/bearbeiten?return=graph`}>Profil bearbeiten</a>
-			<a class="block border-b border-line px-3 py-2 hover:bg-bg" href={`/personen/${menu.id}/bearbeiten?pick=1&return=graph`}>Bild ändern</a>
-			<a class="block border-b border-line px-3 py-2 hover:bg-bg" href={`/personen/${menu.id}/review`}>Review Verbindung</a>
+			<a class="block border-b border-line px-3 py-2 hover:bg-bg" href={`/personen/${menu!.id}/bearbeiten?return=graph`}>Profil bearbeiten</a>
+			<a class="block border-b border-line px-3 py-2 hover:bg-bg" href={`/personen/${menu!.id}/bearbeiten?pick=1&return=graph`}>Bild ändern</a>
+			<a class="block border-b border-line px-3 py-2 hover:bg-bg" href={`/personen/${menu!.id}/review`}>Review Verbindung</a>
+			<button class="block w-full border-b border-line px-3 py-2 text-left hover:bg-bg" onclick={() => openMergeDialog(menu!.id)}>Personen zusammenführen</button>
 			<button class="block w-full border-b border-line px-3 py-2 text-left hover:bg-bg" onclick={() => menu && focusOn(menu.id)}>Fokussieren</button>
-			<a class="block px-3 py-2 hover:bg-bg" href={`/karte?person=${menu.id}`}>Auf Karte</a>
+			<a class="block px-3 py-2 hover:bg-bg" href={`/karte?person=${menu!.id}`}>Auf Karte</a>
+		</div>
+	{/if}
+
+	{#if mergeDialog}
+		<div class="absolute inset-0 z-30 flex items-center justify-center bg-black/35 p-4">
+			<div class="w-full max-w-lg rounded-xl border border-line bg-card shadow-xl">
+				<div class="border-b border-line p-4">
+					<b>Personen zusammenführen</b>
+					<p class="mt-1 text-sm text-mut">Quelle: {mergeDialog.sourceName}. Die Zielperson bleibt bestehen und übernimmt Daten, Verbindungen und Alias-Namen.</p>
+				</div>
+				<form method="POST" action="?/merge" use:enhance={() => async ({ result, update }) => {
+						if (result.type === 'redirect') { mergeDialog = null; }
+						else { await update(); }
+					}}>
+					<input type="hidden" name="sourceId" value={mergeDialog.sourceId} />
+					<div class="max-h-[50vh] overflow-auto p-4">
+						{#if mergeDialog.candidates.length}
+							<div class="space-y-2">
+								{#each mergeDialog.candidates as candidate}
+									<label class="flex cursor-pointer items-start gap-3 rounded-lg border border-line p-3 hover:bg-bg">
+										<input type="radio" name="targetId" value={candidate.id} bind:group={mergeDialog.selectedId} />
+										<span class="min-w-0 flex-1">
+											<b class="block">{candidate.name}</b>
+											<span class="block text-xs text-mut">Ähnlichkeit: {Math.round(candidate.score * 100)}%</span>
+											{#if candidate.aliases.length}
+												<span class="mt-1 block text-xs text-mut">Alias: {candidate.aliases.join(', ')}</span>
+											{/if}
+										</span>
+									</label>
+								{/each}
+							</div>
+						{:else}
+							<p class="text-sm text-mut">Keine ähnlichen Namen gefunden. Lege sonst erst einen Alias an und versuche es erneut.</p>
+						{/if}
+						{#if form?.mergeError}
+							<p class="mt-3 text-sm text-warn">{form.mergeError}</p>
+						{/if}
+					</div>
+					<div class="flex justify-end gap-2 border-t border-line p-4">
+						<button type="button" class="btn" onclick={() => (mergeDialog = null)}>Abbrechen</button>
+						<button class="btn btn-primary" disabled={!mergeDialog.selectedId}>Zusammenführen</button>
+					</div>
+				</form>
+			</div>
 		</div>
 	{/if}
 

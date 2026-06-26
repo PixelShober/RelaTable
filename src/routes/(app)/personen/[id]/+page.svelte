@@ -36,6 +36,13 @@
 		<div>
 			<b class="text-lg">{data.person.name}</b>
 			<div class="text-xs text-mut">{subtitle || '—'}{data.person.gender ? ` · ${data.person.gender}` : ''}</div>
+			{#if data.person.aliases.length}
+				<div class="mt-1 flex flex-wrap gap-1">
+					{#each data.person.aliases as alias}
+						<span class="chip text-[11px]">Alias: {alias}</span>
+					{/each}
+				</div>
+			{/if}
 			<a class="btn btn-sm mt-1.5" href={`/graph?focus=${data.person.id}`}>Im Graph fokussieren</a>
 		</div>
 	</div>

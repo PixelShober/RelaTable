@@ -18,7 +18,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	const person = await db.person.findFirst({
 		where: { id, ownerId },
-		include: { location: true, socialAccounts: true }
+		include: { location: true, socialAccounts: true, aliases: { orderBy: { alias: 'asc' } } }
 	});
 	if (!person) throw error(404, 'Person nicht gefunden');
 
@@ -79,6 +79,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		person: {
 			id: person.id,
 			name: person.name,
+			aliases: person.aliases.map((entry) => entry.alias),
 			gender: person.gender,
 			city: person.location?.city ?? null,
 			dateOfBirth: person.dateOfBirth ? person.dateOfBirth.toISOString() : null,

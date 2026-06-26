@@ -1,6 +1,9 @@
+import { fail, redirect } from '@sveltejs/kit';
 import { loadGraph } from '$lib/server/queries';
+import { mergePersons } from '$lib/server/persons';
+import { db } from '$lib/server/db';
 import { TYPE_COLORS } from '$lib/domain/relationships';
-import type { PageServerLoad } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const graph = await loadGraph(locals.user!.id);
@@ -16,4 +19,22 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	];
 
 	return { graph, focusId, legend };
+};
+
+export const actions: Actions = {
+	merge: async ({ locals, request }) => {
+		const data = await request.formData();
+		const sourceId = Number(data.get('sourceId'));
+		const targetId = Number(data.get('targetId'));
+		if (!Number.isInteger(sourceId) || !Number.isInteger(targetId)) {
+			return fail(400, { mergeError: 'Ungültige Personen-Auswahl.' });
+		}
+
+		try {
+			await mergePersons(db, locals.user!.id, targetId, sourceId);
+		} catch (e) {
+			return fail(400, { mergeError: e instanceof Error ? e.message : 'Merge fehlgeschlagen.' });
+		}
+		throw redirect(303, `/graph?focus=${targetId}`);
+	}
 };

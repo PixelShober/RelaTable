@@ -9,7 +9,19 @@ export const actions: Actions = {
 		if (!result.ok) return fail(400, { errors: result.errors, values: result.values });
 
 		const person = await db.person.create({
-			data: { ownerId: locals.user!.id, ...result.data! }
+			data: {
+				ownerId: locals.user!.id,
+				name: result.data!.name,
+				dateOfBirth: result.data!.dateOfBirth,
+				gender: result.data!.gender,
+				locationId: result.data!.locationId,
+				notes: result.data!.notes,
+				profileImagePath: result.data!.profileImagePath,
+				profileImageUrl: result.data!.profileImageUrl,
+				aliases: {
+					create: result.data!.aliases.map((alias) => ({ alias }))
+				}
+			}
 		});
 		throw redirect(303, `/personen/${person.id}`);
 	}

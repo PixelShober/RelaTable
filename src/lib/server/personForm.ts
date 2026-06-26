@@ -6,6 +6,7 @@ const GENDERS = ['Männlich', 'Weiblich', 'divers'] as const;
 
 const schema = z.object({
 	name: z.string().trim().min(1, 'Name ist Pflicht'),
+	aliases: z.string().trim().optional(),
 	dateOfBirth: z.string().trim().optional(),
 	gender: z.enum(GENDERS).optional().or(z.literal('')),
 	city: z.string().trim().optional(),
@@ -22,6 +23,7 @@ export interface PersonFormResult {
 	imageProvided?: boolean;
 	data?: {
 		name: string;
+		aliases: string[];
 		dateOfBirth: Date | null;
 		gender: string | null;
 		locationId: number | null;
@@ -35,6 +37,7 @@ export interface PersonFormResult {
 export async function processPersonForm(formData: FormData): Promise<PersonFormResult> {
 	const raw = {
 		name: String(formData.get('name') ?? ''),
+		aliases: String(formData.get('aliases') ?? ''),
 		dateOfBirth: String(formData.get('dateOfBirth') ?? ''),
 		gender: String(formData.get('gender') ?? ''),
 		city: String(formData.get('city') ?? ''),
@@ -49,6 +52,13 @@ export async function processPersonForm(formData: FormData): Promise<PersonFormR
 		return { ok: false, errors: parsed.error.flatten().fieldErrors, values };
 	}
 	const v = parsed.data;
+	const aliases = [...new Set(
+		(v.aliases ?? '')
+			.split(/\r?\n|,/)
+			.map((alias) => alias.trim())
+			.filter(Boolean)
+			.filter((alias) => alias.toLowerCase() !== v.name.toLowerCase())
+	)];
 
 	// Date of birth (input type=date → yyyy-mm-dd) (AC-027/028: age computed, not stored).
 	let dob: Date | null = null;
@@ -89,6 +99,7 @@ export async function processPersonForm(formData: FormData): Promise<PersonFormR
 		imageProvided,
 		data: {
 			name: v.name,
+			aliases,
 			dateOfBirth: dob,
 			gender: v.gender || null,
 			locationId,

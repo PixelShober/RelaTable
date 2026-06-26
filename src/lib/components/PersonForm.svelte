@@ -6,6 +6,7 @@
 
 	interface InitialValues {
 		name?: string;
+		aliases?: string;
 		dateOfBirth?: string; // yyyy-mm-dd
 		gender?: string;
 		city?: string;
@@ -23,6 +24,7 @@
 
 	// Local bound state so reactive re-renders never reset typed values.
 	let name = $state(initial.name ?? '');
+	let aliases = $state(initial.aliases ?? '');
 	let dateOfBirth = $state(initial.dateOfBirth ?? '');
 	let gender = $state(initial.gender ?? '');
 	let city = $state(initial.city ?? '');
@@ -84,6 +86,19 @@
 			<label class="label" for="name">Name *</label>
 			<input id="name" name="name" class="inp mb-1 mt-1" bind:value={name} required placeholder="Pflichtfeld" />
 			{#if err('name')}<p class="mb-2 text-[11px] text-warn">{err('name')}</p>{/if}
+
+			<div class="mt-2.5">
+				<label class="label" for="aliases">Alias-Namen</label>
+				<textarea
+					id="aliases"
+					name="aliases"
+					class="inp mt-1"
+					rows="2"
+					bind:value={aliases}
+					placeholder="Ein Alias pro Zeile oder komma-getrennt"
+				></textarea>
+				<p class="mt-1 text-[11px] text-mut">Hilft der KI und Suche bei Spitznamen wie Conny oder Consti.</p>
+			</div>
 
 			<div class="flex gap-2.5">
 				<div class="flex-1">

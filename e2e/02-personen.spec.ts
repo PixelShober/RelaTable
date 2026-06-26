@@ -17,11 +17,18 @@ test.describe('Personen (SCR-010/011/012)', () => {
 	test('create a new person and land on its profile', async ({ page }) => {
 		await page.goto('/personen/neu');
 		await page.getByLabel('Name *').fill('Test Person E2E');
+		await page.getByLabel('Alias-Namen').fill('Conny\nConsti');
 		await page.getByLabel('Ort (Stadt/Region genügt)').fill('Berlin');
 		await page.getByRole('button', { name: 'Speichern' }).click();
 
 		await expect(page).toHaveURL(/\/personen\/\d+$/);
 		await expect(page.getByRole('heading', { name: 'Test Person E2E' }).or(page.getByText('Test Person E2E').first())).toBeVisible();
+		await expect(page.getByText('Alias: Conny')).toBeVisible();
+		await expect(page.getByText('Alias: Consti')).toBeVisible();
+
+		await page.goto('/personen');
+		await page.getByPlaceholder('Suche nach Name…').fill('Consti');
+		await expect(page.getByText('Test Person E2E')).toBeVisible();
 	});
 
 	test('profile shows relationships sorted with the closest first', async ({ page }) => {

@@ -9,6 +9,7 @@ import { runJsonImport, parseTime, normalizeGender } from './jsonImport';
 import { findOrCreateLocation } from './geo';
 import { getOrCreateConnection, startType, endPeriod, endRomance, addJournal } from './relationshipService';
 import { updateEvent } from './eventService';
+import { searchPersons } from './persons';
 import { canonicalPair } from '$lib/domain/relationships';
 import type { ParsedImprecise } from './impreciseTime';
 import type { TimeKind } from '$lib/domain/time';
@@ -25,12 +26,6 @@ async function ownerId(): Promise<number> {
 }
 
 const SCHEMA_PATH = path.resolve(process.cwd(), 'docs/import/json-schema.md');
-
-// ponytail: SQLite-contains ist case-sensitive; für eine private Single-Owner-DB holen wir alle
-// Personen und filtern in-memory (lowercase). Auf SQL-LIKE/FTS wechseln, wenn die DB deutlich wächst.
-function icontains(hay: string, needle: string): boolean {
-	return hay.toLowerCase().includes(needle.toLowerCase());
-}
 
 function text(name: string, lines: Record<string, unknown>): string {
 	return [name, ...Object.entries(lines).map(([k, v]) => `  ${k}: ${v}`)].join('\n');
@@ -55,7 +50,9 @@ async function resolvePersonId(oid: number, ref: number | string): Promise<numbe
 		return p?.id ?? null;
 	}
 	const p = await db.person.findFirst({ where: { ownerId: oid, name: ref } });
-	return p?.id ?? null;
+	if (p) return p.id;
+	const alias = await db.personAlias.findFirst({ where: { alias: ref, person: { ownerId: oid } } });
+	return alias?.personId ?? null;
 }
 
 function periodSummary(pr: {
@@ -83,31 +80,22 @@ export function registerMcpTools(server: McpServer): void {
 		'search_persons',
 		{
 			description:
-				'Sucht Personen im Netzwerk des Owners (case-insensitive Teilstring auf Name/Stadt/Notiz). Leerer query → alle Personen. Nutze dies, um erwähnte Namen (z. B. "Conny", "Louis") auf existierende Personen abzubilden, bevor du entscheidest, ob neu angelegt oder ergänzt wird.',
+				'Sucht Personen im Netzwerk des Owners (case-insensitive Teilstring auf Name, Alias, Stadt oder Notiz). Leerer query → alle Personen. Nutze dies, um erwähnte Namen (z. B. "Conny", "Louis") auf existierende Personen abzubilden, bevor du entscheidest, ob neu angelegt oder ergänzt wird.',
 			inputSchema: { query: z.string().default(''), limit: z.number().int().min(1).max(100).default(20) }
 		},
 		async ({ query, limit }) => {
-			const all = await db.person.findMany({
-				select: {
-					id: true,
-					name: true,
-					gender: true,
-					dateOfBirth: true,
-					notes: true,
-					location: { select: { city: true } }
-				}
-			});
-			const q = (query ?? '').trim();
-			const hits = (q
-				? all.filter((p) =>
-						icontains(p.name, q) ||
-						(p.location?.city && icontains(p.location.city, q)) ||
-						(p.notes && icontains(p.notes, q))
-				  )
-				: all
-			).slice(0, limit);
+			const hits = await searchPersons(db, await ownerId(), query ?? '', limit);
 			const body = hits
-				.map((p) => text(p.name, { id: p.id, stadt: p.location?.city ?? '—', geboren: p.dateOfBirth ? p.dateOfBirth.toISOString().slice(0, 10) : '—', geschlecht: p.gender ?? '—', notizen: p.notes ?? '' }))
+				.map((p) =>
+					text(p.name, {
+						id: p.id,
+						alias: p.aliases.join(', ') || '—',
+						stadt: p.city ?? '—',
+						geboren: p.dateOfBirth ? p.dateOfBirth.toISOString().slice(0, 10) : '—',
+						geschlecht: p.gender ?? '—',
+						notizen: p.notes ?? ''
+					})
+				)
 				.join('\n---\n');
 			return { content: [{ type: 'text' as const, text: `${hits.length} Treffer:\n${body || '(keine)'}` }] };
 		}
@@ -117,7 +105,7 @@ export function registerMcpTools(server: McpServer): void {
 		'get_person',
 		{
 			description:
-				'Liefert Details zu einer Person (id oder exakter Name) plus ihrer Verbindungen (mit connectionId, aktuellem Beziehungstyp und Zeitraum-Historie) und Ereignissen. Nutze dies zum Ergänzen nachträglicher Infos (Geburtstag, Notiz) und um connectionId/Paar-Daten für start_relationship/end_relationship/add_journal zu holen.',
+				'Liefert Details zu einer Person (id oder exakter Name/Alias) plus ihrer Verbindungen (mit connectionId, aktuellem Beziehungstyp und Zeitraum-Historie) und Ereignissen. Nutze dies zum Ergänzen nachträglicher Infos (Geburtstag, Notiz) und um connectionId/Paar-Daten für start_relationship/end_relationship/add_journal zu holen.',
 			inputSchema: {
 				id: z.number().int().optional(),
 				name: z.string().optional()
@@ -129,17 +117,33 @@ export function registerMcpTools(server: McpServer): void {
 				where: id != null ? { id } : { name: name as string },
 				include: {
 					location: true,
+					aliases: true,
 					socialAccounts: true,
 					connectionsLow: { include: { periods: { include: { relationshipType: true } }, personHigh: { select: { id: true, name: true } } } },
 					connectionsHigh: { include: { periods: { include: { relationshipType: true } }, personLow: { select: { id: true, name: true } } } },
 					eventParticipations: { include: { event: { include: { eventType: true, location: true } } } }
 				}
 			});
-			if (!p) return err('Person nicht gefunden.');
+			const aliasHit =
+				p ??
+				(name
+					? await db.person.findFirst({
+							where: { aliases: { some: { alias: name as string } } },
+							include: {
+								location: true,
+								aliases: true,
+								socialAccounts: true,
+								connectionsLow: { include: { periods: { include: { relationshipType: true } }, personHigh: { select: { id: true, name: true } } } },
+								connectionsHigh: { include: { periods: { include: { relationshipType: true } }, personLow: { select: { id: true, name: true } } } },
+								eventParticipations: { include: { event: { include: { eventType: true, location: true } } } }
+							}
+					  })
+					: null);
+			if (!aliasHit) return err('Person nicht gefunden.');
 
 			const conns = [
-				...p.connectionsLow.map((c) => ({ connId: c.id, other: c.personHigh, periods: c.periods })),
-				...p.connectionsHigh.map((c) => ({ connId: c.id, other: c.personLow, periods: c.periods }))
+				...aliasHit.connectionsLow.map((c) => ({ connId: c.id, other: c.personHigh, periods: c.periods })),
+				...aliasHit.connectionsHigh.map((c) => ({ connId: c.id, other: c.personLow, periods: c.periods }))
 			];
 			const connText = conns
 				.map((c) => {
@@ -149,17 +153,18 @@ export function registerMcpTools(server: McpServer): void {
 					return text(c.other.name, { id: c.other.id, connectionId: c.connId, aktuell: types, historie: history });
 				})
 				.join('\n---\n');
-			const evText = p.eventParticipations
+			const evText = aliasHit.eventParticipations
 				.map((ep) => ep.event)
 				.map((e) => text(e.name, { id: e.id, typ: e.eventType.name, am: e.occurredAtText ?? (e.occurredAt ? e.occurredAt.toISOString().slice(0, 10) : '—'), ort: e.location?.city ?? '—' }))
 				.join('\n---\n');
-			const body = text(p.name, {
-				id: p.id,
-				gender: p.gender ?? '—',
-				geburtstag: p.dateOfBirth ? p.dateOfBirth.toISOString().slice(0, 10) : '—',
-				stadt: p.location?.city ?? '—',
-				notizen: p.notes ?? '',
-				social: p.socialAccounts.map((s) => `${s.platform}:${s.handle}`).join(', ') || '—',
+			const body = text(aliasHit.name, {
+				id: aliasHit.id,
+				alias: aliasHit.aliases.map((entry) => entry.alias).join(', ') || '—',
+				gender: aliasHit.gender ?? '—',
+				geburtstag: aliasHit.dateOfBirth ? aliasHit.dateOfBirth.toISOString().slice(0, 10) : '—',
+				stadt: aliasHit.location?.city ?? '—',
+				notizen: aliasHit.notes ?? '',
+				social: aliasHit.socialAccounts.map((s) => `${s.platform}:${s.handle}`).join(', ') || '—',
 				verbindungen: `\n${connText || '(keine)'}`,
 				ereignisse: `\n${evText || '(keine)'}`
 			});

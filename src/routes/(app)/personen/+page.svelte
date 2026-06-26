@@ -82,6 +82,9 @@
 							<span class="block truncate text-xs text-mut">
 								{p.city ?? 'Kein Ort'} · {p.degree} {p.degree === 1 ? 'Verbindung' : 'Verbindungen'}
 							</span>
+							{#if p.aliases.length}
+								<span class="block truncate text-[11px] text-mut">Alias: {p.aliases.join(', ')}</span>
+							{/if}
 						</span>
 						<span class="text-mut">›</span>
 					</a>
