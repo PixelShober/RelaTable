@@ -28,6 +28,34 @@
 	let popup = $state(false);
 	let popupTimer = 0;
 	const blocked = $derived(reason !== null);
+	let convoOpen = $state(false);
+	let convo = $state<ChatMsg[]>([]);
+	let history: ApiMsg[] = [];
+	let busy = $state(false);
+	let draft = $state('');
+
+	type VoicePhase = 'idle' | 'recording' | 'processing' | 'updating' | 'done' | 'error';
+	let phase = $state<VoicePhase>('idle');
+	let doneTimer = 0;
+	const PHASE_MSG: Record<VoicePhase, string> = {
+		idle: '',
+		recording: 'Hört zu…',
+		processing: 'Prompt läuft…',
+		updating: 'Daten werden aktualisiert…',
+		done: 'Antwort bereit',
+		error: 'Fehler'
+	};
+	const voiceStatus = $derived(
+		reason === 'loading'
+			? MSG.loading
+			: active
+				? PHASE_MSG.recording
+				: busy
+					? PHASE_MSG.processing
+					: phase !== 'idle'
+						? PHASE_MSG[phase]
+						: ''
+	);
 
 	onMount(async () => {
 		try {
@@ -45,12 +73,6 @@
 		clearTimeout(popupTimer);
 		popupTimer = window.setTimeout(() => (popup = false), 4000);
 	}
-
-	let convoOpen = $state(false);
-	let convo = $state<ChatMsg[]>([]);
-	let history: ApiMsg[] = [];
-	let busy = $state(false);
-	let draft = $state('');
 
 	let stream: MediaStream | null = null;
 	let ctx: AudioContext | null = null;
@@ -73,10 +95,12 @@
 	async function start() {
 		error = '';
 		transcript = '';
+		phase = 'recording';
 		try {
 			stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 		} catch {
 			error = 'Kein Mikrofonzugriff';
+			phase = 'error';
 			return;
 		}
 		ctx = new AudioContext();
@@ -168,6 +192,7 @@
 		stopCapture();
 		transcript = '';
 		interimTranscript = '';
+		phase = 'idle';
 	}
 
 	async function confirm() {
@@ -177,6 +202,7 @@
 			error = SR
 				? 'Nichts verstanden — bitte erneut.'
 				: 'Spracherkennung nicht verfügbar — bitte tippen.';
+			phase = 'error';
 			convoOpen = true;
 			return;
 		}
@@ -184,7 +210,9 @@
 	}
 
 	async function send(text: string) {
+		clearTimeout(doneTimer);
 		error = '';
+		phase = 'processing';
 		convoOpen = true;
 		convo = [...convo, { role: 'user', content: text }];
 		history = [...history, { role: 'user', content: text }];
@@ -203,7 +231,12 @@
 			const resp = await res.json();
 			history = resp.messages;
 			convo = [...convo, { role: 'assistant', content: resp.reply || '(keine Antwort)' }];
-			if (resp.wrote) await invalidateAll();
+			if (resp.wrote) {
+				phase = 'updating';
+				await invalidateAll();
+			}
+			phase = 'done';
+			doneTimer = window.setTimeout(() => (phase = 'idle'), 3000);
 		} catch (e) {
 			error =
 				e instanceof Error && e.name === 'AbortError'
@@ -211,6 +244,7 @@
 					: e instanceof Error
 						? e.message
 						: 'Anfrage fehlgeschlagen';
+			phase = 'error';
 			if (/402|credit|insufficient/i.test(error)) reason = 'no-credits';
 			else if (/401|api.?key|unauthor/i.test(error)) reason = 'invalid-key';
 		} finally {
@@ -232,9 +266,14 @@
 		history = [];
 		draft = '';
 		error = '';
+		phase = 'idle';
+		clearTimeout(doneTimer);
 	}
 
-	onDestroy(stopCapture);
+	onDestroy(() => {
+		clearTimeout(doneTimer);
+		stopCapture();
+	});
 </script>
 
 <!-- Global FAB: visible when no overlay is open -->
@@ -249,6 +288,15 @@
 				role="alert"
 			>
 				{statusMsg || MSG[reason]}
+			</div>
+		{/if}
+		{#if voiceStatus && !popup}
+			<div
+				class="absolute bottom-full right-0 mb-2 max-w-[220px] rounded-lg border border-line bg-card px-3 py-1.5 text-[12px] text-ink shadow-lg"
+				role="status"
+				aria-live="polite"
+			>
+				{voiceStatus}
 			</div>
 		{/if}
 		<button
@@ -297,6 +345,11 @@
 				>
 					<div class="flex items-center justify-between border-b border-line px-4 py-3">
 						<b class="text-sm">Erzählung</b>
+						{#if voiceStatus}
+							<span class="rounded-full border border-line px-2 py-0.5 text-[11px] text-mut" role="status" aria-live="polite">
+								{voiceStatus}
+							</span>
+						{/if}
 						<button
 							type="button"
 							onclick={closeConvo}
@@ -314,7 +367,10 @@
 							</div>
 						{/each}
 						{#if busy}
-							<div class="text-xs text-mut">KI denkt nach…</div>
+							<div class="flex items-center gap-2 text-xs text-mut" role="status" aria-live="polite">
+								<span class="h-2 w-2 rounded-full bg-accent"></span>
+								{voiceStatus || 'Prompt läuft…'}
+							</div>
 						{/if}
 						{#if error}
 							<div class="text-xs text-warn">{error}</div>
@@ -414,6 +470,11 @@
 				</button>
 
 				<p class="text-sm text-white/70">Tippe zum Senden</p>
+				{#if voiceStatus}
+					<p class="rounded-lg bg-black/30 px-3 py-1.5 text-xs text-white/90" role="status" aria-live="polite">
+						{voiceStatus}
+					</p>
+				{/if}
 
 				{#if error}
 					<p class="rounded-lg bg-black/30 px-3 py-1.5 text-xs text-warn">{error}</p>
