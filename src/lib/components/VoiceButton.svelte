@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, tick } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { fade, scale } from 'svelte/transition';
 
@@ -33,6 +33,12 @@
 	let history: ApiMsg[] = [];
 	let busy = $state(false);
 	let draft = $state('');
+	let msgList = $state<HTMLDivElement>();
+
+	async function scrollToBottom() {
+		await tick();
+		requestAnimationFrame(() => msgList?.scrollTo({ top: msgList.scrollHeight }));
+	}
 
 	type VoicePhase = 'idle' | 'recording' | 'processing' | 'updating' | 'done' | 'error';
 	let phase = $state<VoicePhase>('idle');
@@ -143,6 +149,7 @@
 			error = 'Spracherkennung wird von diesem Browser nicht unterstützt — bitte Text eingeben.';
 			phase = 'error';
 			convoOpen = true;
+			void scrollToBottom();
 			return;
 		}
 		// Use synthetic pulse bars; a parallel WebAudio mic stream can starve SpeechRecognition on Android.
@@ -209,6 +216,7 @@
 			phase = 'error';
 			stopCapture();
 			convoOpen = true;
+			void scrollToBottom();
 		};
 		rec.onstart = () => {
 			logClientEvent('speech.recognition_started');
@@ -237,6 +245,7 @@
 			phase = 'error';
 			stopCapture();
 			convoOpen = true;
+			void scrollToBottom();
 		}
 	}
 
@@ -261,6 +270,7 @@
 				: 'Spracherkennung nicht verfügbar — bitte tippen.';
 			phase = 'error';
 			convoOpen = true;
+			void scrollToBottom();
 			return;
 		}
 		await send(text);
@@ -274,8 +284,10 @@
 		const userMessage: ApiMsg = { role: 'user', content: text };
 		const nextHistory: ApiMsg[] = [...history, userMessage].slice(-16);
 		convo = [...convo, { role: 'user', content: text }];
+		void scrollToBottom();
 		history = nextHistory;
 		busy = true;
+		void scrollToBottom();
 		const ctrl = new AbortController();
 		const timer = window.setTimeout(() => ctrl.abort(), 150_000);
 		try {
@@ -292,6 +304,7 @@
 			const assistantMessage: ApiMsg = { role: 'assistant', content: reply };
 			history = [...nextHistory, assistantMessage].slice(-16);
 			convo = [...convo, { role: 'assistant', content: reply }];
+			void scrollToBottom();
 			if (resp.wrote) {
 				phase = 'updating';
 				await invalidateAll();
@@ -308,6 +321,7 @@
 			phase = 'error';
 			if (/402|credit|insufficient/i.test(error)) reason = 'no-credits';
 			else if (/401|api.?key|unauthor/i.test(error)) reason = 'invalid-key';
+			void scrollToBottom();
 		} finally {
 			window.clearTimeout(timer);
 			busy = false;
@@ -418,7 +432,11 @@
 							aria-label="Schließen">✕</button
 						>
 					</div>
-					<div class="flex max-h-96 flex-col gap-2 overflow-y-auto px-4 py-3 text-sm">
+					<div
+						bind:this={msgList}
+						data-testid="voice-convo-messages"
+						class="flex max-h-96 flex-col gap-2 overflow-y-auto px-4 py-3 text-sm"
+					>
 						{#each convo as m}
 							<div class="flex {m.role === 'user' ? 'justify-end' : 'justify-start'}">
 								<span

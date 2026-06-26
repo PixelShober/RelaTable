@@ -30,4 +30,43 @@ test.describe('Voice Button (SCR-060)', () => {
 		const res = await page.request.post('/api/narrate', { data: {} });
 		expect(res.status()).toBe(400);
 	});
+
+	test('conversation panel scrolls to bottom after new messages', async ({ page }) => {
+		// Unblock the voice button and mock narrate so we can drive the convo panel.
+		await page.route('/api/voice-status', (r) => r.fulfill({ json: { reason: null } }));
+		await page.route('/api/narrate', (r) =>
+			r.fulfill({
+				json: {
+					reply:
+						'Testantwort vom Assistenten.\n\n' +
+						Array(12).fill('Zusätzliche Zeile für Scroll-Höhe.').join('\n')
+				}
+			})
+		);
+		await page.goto('/graph');
+
+		// Wait for voice-status to be fetched; button should no longer be opacity-50.
+		const fab = page.getByRole('button', { name: 'Mikrofon starten' });
+		await expect(fab).not.toHaveClass(/opacity-50/, { timeout: 5000 });
+
+		// Click FAB and confirm without speech to open the conversation panel.
+		await fab.click();
+		await page.getByRole('button', { name: 'Aufnahme bestätigen und senden' }).click();
+		// The conversation panel should be open.
+		await expect(page.getByRole('textbox', { name: 'Antwort' })).toBeVisible();
+
+		// Send a typed message and verify the container scrolled to bottom.
+		const input = page.getByRole('textbox', { name: 'Antwort' });
+		await input.fill('Hallo Welt');
+		await page.getByRole('button', { name: 'Senden', exact: true }).click();
+
+		// Wait for the assistant reply to appear.
+		await expect(page.getByText('Testantwort vom Assistenten.')).toBeVisible();
+
+		// The scroll container should be scrolled to bottom (scrollTop ≈ scrollHeight - clientHeight).
+		const scrolledToBottom = await page.getByTestId('voice-convo-messages').evaluate((el) => {
+			return Math.abs(el.scrollHeight - el.scrollTop - el.clientHeight) < 5;
+		});
+		expect(scrolledToBottom).toBe(true);
+	});
 });
