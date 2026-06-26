@@ -25,6 +25,14 @@
 
 	const eventTypes = $derived([...new Set(data.eventMarkers.map((e) => e.typeName))]);
 
+	function markerSignature() {
+		return (
+			data.personMarkers.map((p) => `${p.id}:${p.name}:${p.city}:${p.lat}:${p.lng}`).join(',') +
+			'|' +
+			data.eventMarkers.map((e) => `${e.id}:${e.name}:${e.typeName}:${e.sensitive}:${e.when}:${e.lat}:${e.lng}`).join(',')
+		);
+	}
+
 	function pinIcon(color: string) {
 		return L.divIcon({
 			className: '',
@@ -92,6 +100,7 @@
 		} else if (all.length) {
 			map.fitBounds(all.map((m) => [m.lat, m.lng]), { padding: [40, 40], maxZoom: 11 });
 		}
+		mapReady = true;
 	}
 
 	function clusterIcon(color: string) {
@@ -103,12 +112,16 @@
 			});
 	}
 
+	// Nach einem Schreibvorgang über die Erzählfunktion ruft VoiceButton invalidateAll();
+	// das aktualisiert `data` → hier die Leaflet-Layer neu aufbauen (Karte "live").
+	let mapReady = false;
 	$effect(() => {
-		// Re-run when any filter changes.
+		markerSignature(); // tracks marker data from load()
 		showPersons;
 		showEvents;
 		showSensitive;
 		eventType;
+		if (!map || !mapReady) return;
 		rebuild();
 	});
 
