@@ -121,6 +121,23 @@
 		menu = null;
 		panel = null;
 	}
+	function updateFloatingPositions() {
+		if (!cy) return;
+		if (panel) {
+			const node = cy.getElementById(String(panel.id));
+			if (!node.empty()) {
+				const p = node.renderedPosition();
+				panel = { ...panel, x: p.x, y: p.y };
+			}
+		}
+		if (menu) {
+			const node = cy.getElementById(String(menu.id));
+			if (!node.empty()) {
+				const p = node.renderedPosition();
+				menu = { ...menu, x: p.x, y: p.y };
+			}
+		}
+	}
 
 	function buildElements() {
 		const nodes = data.graph.nodes.map((n) => ({
@@ -259,12 +276,7 @@
 				mergeDialog = null;
 			}
 		});
-		cy.on('pan zoom', () => {
-			if (panel) {
-				const p = cy.getElementById(String(panel.id)).renderedPosition();
-				panel = { ...panel, x: p.x, y: p.y };
-			}
-		});
+		cy.on('pan zoom', updateFloatingPositions);
 
 		// On first load with a focus, settle positions synchronously so applyFocus reads final
 		// coordinates (animated layout would leave it reading mid-flight positions → wrong ring/zoom).
