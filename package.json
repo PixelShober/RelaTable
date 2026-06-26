@@ -16,6 +16,7 @@
     "import:notion": "tsx scripts/import-notion.ts",
     "test": "vitest run",
     "test:watch": "vitest",
+    "smoke:narrate:claude": "vite-node scripts/narrate-claude-smoke.ts",
     "e2e": "playwright test",
     "e2e:install": "playwright install chromium",
     "postinstall": "prisma generate"

@@ -36,7 +36,8 @@ export default defineConfig({
 			PORT: String(PORT),
 			ORIGIN: `http://localhost:${PORT}`,
 			// Not 'production' so session cookies aren't flagged Secure over http://localhost.
-			NODE_ENV: 'test'
+			NODE_ENV: 'test',
+			RELATABLE_MCP_TOKEN: 'e2e-token'
 		}
 	}
 });
