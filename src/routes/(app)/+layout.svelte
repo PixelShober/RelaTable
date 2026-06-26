@@ -116,7 +116,10 @@
 	</nav>
 
 	<!-- Global voice FAB + overlay -->
-	<VoiceButton />
+	<VoiceButton
+		narrateAutoApprove={data.narrateAutoApprove}
+		narratePragmaticMode={data.narratePragmaticMode}
+	/>
 
 	<!-- "Mehr" sheet -->
 	{#if moreOpen}

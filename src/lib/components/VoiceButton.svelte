@@ -6,6 +6,11 @@
 	type ChatMsg = { role: 'user' | 'assistant'; content: string };
 	type ApiMsg = { role: 'user' | 'assistant'; content: string };
 
+	let { narrateAutoApprove = false, narratePragmaticMode = false } = $props<{
+		narrateAutoApprove?: boolean;
+		narratePragmaticMode?: boolean;
+	}>();
+
 	const BARS = 20;
 	const SR: any =
 		typeof window !== 'undefined' &&
@@ -51,6 +56,7 @@
 		done: 'Antwort bereit',
 		error: 'Fehler'
 	};
+	const compactAutoMode = $derived(narrateAutoApprove && narratePragmaticMode);
 	const voiceStatus = $derived(
 		reason === 'checking'
 			? ''
@@ -59,8 +65,10 @@
 				: busy
 					? PHASE_MSG.processing
 					: phase !== 'idle'
-						? PHASE_MSG[phase]
-						: ''
+						? phase === 'done' && compactAutoMode
+							? 'Aktualisiert'
+							: PHASE_MSG[phase]
+							: ''
 	);
 
 	function logClientEvent(event: string, fields: Record<string, unknown> = {}) {
@@ -273,21 +281,27 @@
 			void scrollToBottom();
 			return;
 		}
-		await send(text);
+		await send(text, { compact: compactAutoMode });
 	}
 
-	async function send(text: string) {
+	async function send(text: string, opts: { compact?: boolean } = {}) {
+		const compact = !!opts.compact;
 		clearTimeout(doneTimer);
 		error = '';
 		phase = 'processing';
-		convoOpen = true;
+		convoOpen = !compact;
 		const userMessage: ApiMsg = { role: 'user', content: text };
-		const nextHistory: ApiMsg[] = [...history, userMessage].slice(-16);
-		convo = [...convo, { role: 'user', content: text }];
-		void scrollToBottom();
+		const nextHistory: ApiMsg[] = compact ? [userMessage] : [...history, userMessage].slice(-16);
+		if (compact) {
+			convo = [];
+			draft = '';
+		} else {
+			convo = [...convo, { role: 'user', content: text }];
+			void scrollToBottom();
+		}
 		history = nextHistory;
 		busy = true;
-		void scrollToBottom();
+		if (!compact) void scrollToBottom();
 		const ctrl = new AbortController();
 		const timer = window.setTimeout(() => ctrl.abort(), 150_000);
 		try {
@@ -301,10 +315,16 @@
 				throw new Error((await res.json().catch(() => ({})))?.message || `Fehler ${res.status}`);
 			const resp = await res.json();
 			const reply = resp.reply || '(keine Antwort)';
-			const assistantMessage: ApiMsg = { role: 'assistant', content: reply };
-			history = [...nextHistory, assistantMessage].slice(-16);
-			convo = [...convo, { role: 'assistant', content: reply }];
-			void scrollToBottom();
+			if (compact) {
+				history = [];
+				convo = [];
+				convoOpen = false;
+			} else {
+				const assistantMessage: ApiMsg = { role: 'assistant', content: reply };
+				history = [...nextHistory, assistantMessage].slice(-16);
+				convo = [...convo, { role: 'assistant', content: reply }];
+				void scrollToBottom();
+			}
 			if (resp.wrote) {
 				phase = 'updating';
 				await invalidateAll();
@@ -321,7 +341,11 @@
 			phase = 'error';
 			if (/402|credit|insufficient/i.test(error)) reason = 'no-credits';
 			else if (/401|api.?key|unauthor/i.test(error)) reason = 'invalid-key';
-			void scrollToBottom();
+			if (compact) {
+				convoOpen = false;
+			} else {
+				void scrollToBottom();
+			}
 		} finally {
 			window.clearTimeout(timer);
 			busy = false;

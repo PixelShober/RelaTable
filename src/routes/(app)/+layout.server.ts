@@ -4,11 +4,12 @@ import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async ({ locals }) => {
 	if (!locals.user) throw redirect(303, '/login');
-	const railPinned = await getBoolSetting(locals.user.id, SETTING_KEYS.railPinned, false);
-	const hideSensitiveByDefault = await getBoolSetting(
-		locals.user.id,
-		SETTING_KEYS.hideSensitiveByDefault,
-		true
-	);
-	return { user: locals.user, railPinned, hideSensitiveByDefault };
+	const [railPinned, hideSensitiveByDefault, narrateAutoApprove, narratePragmaticMode] =
+		await Promise.all([
+			getBoolSetting(locals.user.id, SETTING_KEYS.railPinned, false),
+			getBoolSetting(locals.user.id, SETTING_KEYS.hideSensitiveByDefault, true),
+			getBoolSetting(locals.user.id, SETTING_KEYS.narrateAutoApprove, false),
+			getBoolSetting(locals.user.id, SETTING_KEYS.narratePragmaticMode, false)
+		]);
+	return { user: locals.user, railPinned, hideSensitiveByDefault, narrateAutoApprove, narratePragmaticMode };
 };

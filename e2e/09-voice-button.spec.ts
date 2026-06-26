@@ -3,6 +3,10 @@ import { login } from './helpers';
 
 test.describe('Voice Button (SCR-060)', () => {
 	test.beforeEach(({ page }) => login(page));
+	test.afterEach(async ({ page }) => {
+		await page.request.post('/api/setting', { data: { key: 'narrateAutoApprove', value: 'false' } }).catch(() => {});
+		await page.request.post('/api/setting', { data: { key: 'narratePragmaticMode', value: 'false' } }).catch(() => {});
+	});
 
 	test('FAB is visible after login', async ({ page }) => {
 		await page.goto('/graph');
@@ -68,5 +72,60 @@ test.describe('Voice Button (SCR-060)', () => {
 			return Math.abs(el.scrollHeight - el.scrollTop - el.clientHeight) < 5;
 		});
 		expect(scrolledToBottom).toBe(true);
+	});
+
+	test('compact auto mode processes voice without opening the chat panel', async ({ page }) => {
+		let narrateCalled = false;
+		await page.addInitScript(() => {
+			class FakeSpeechRecognition {
+				lang = '';
+				continuous = false;
+				interimResults = false;
+				onstart?: () => void;
+				onresult?: (event: unknown) => void;
+				onend?: () => void;
+				start() {
+					this.onstart?.();
+					setTimeout(() => {
+						const result: any = [{ transcript: 'Ich habe mit Finn Mittag gegessen' }];
+						result.isFinal = true;
+						const results: any = [result];
+						this.onresult?.({ resultIndex: 0, results });
+					}, 50);
+				}
+				stop() {
+					this.onend?.();
+				}
+			}
+			(window as any).SpeechRecognition = FakeSpeechRecognition;
+			(window as any).webkitSpeechRecognition = FakeSpeechRecognition;
+		});
+		await page.route('/api/voice-status', (r) => r.fulfill({ json: { reason: null } }));
+		await page.route('/api/narrate', async (r) => {
+			narrateCalled = true;
+			await new Promise((resolve) => setTimeout(resolve, 800));
+			await r.fulfill({
+				json: {
+					reply: 'Angelegt.',
+					messages: [],
+					wrote: true
+				}
+			});
+		});
+		await page.goto('/graph');
+		await page.request.post('/api/setting', { data: { key: 'narrateAutoApprove', value: 'true' } });
+		await page.request.post('/api/setting', { data: { key: 'narratePragmaticMode', value: 'true' } });
+		await page.reload();
+
+		const fab = page.getByRole('button', { name: 'Mikrofon starten' });
+		await expect(fab).not.toHaveClass(/opacity-50/, { timeout: 5000 });
+		await fab.click();
+		await expect(page.getByText('Ich habe mit Finn Mittag gegessen')).toBeVisible();
+		await page.getByRole('button', { name: 'Aufnahme bestätigen und senden' }).click();
+
+		await expect(page.getByRole('textbox', { name: 'Antwort' })).toHaveCount(0);
+		await expect(page.getByRole('status').filter({ hasText: 'Prompt läuft' })).toBeVisible();
+		await expect.poll(() => narrateCalled).toBe(true);
+		await expect(page.getByText('Angelegt.')).toHaveCount(0);
 	});
 });
