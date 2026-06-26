@@ -15,15 +15,15 @@
 	let error = $state('');
 	let bars = $state<number[]>(Array(BARS).fill(0));
 
-	type Reason = 'loading' | 'no-key' | 'invalid-key' | 'no-credits' | 'error' | null;
+	type Reason = 'checking' | 'no-key' | 'invalid-key' | 'no-credits' | 'error' | null;
 	const MSG: Record<NonNullable<Reason>, string> = {
-		loading: 'Sprachdienst wird geprüft…',
+		checking: 'Sprachdienst wird geprüft…',
 		'no-key': 'Kein OpenRouter-API-Key — in den Einstellungen hinterlegen.',
 		'invalid-key': 'OpenRouter-API-Key ungültig.',
 		'no-credits': 'Keine Credits mehr verfügbar.',
 		error: 'Sprachdienst nicht erreichbar.'
 	};
-	let reason = $state<Reason>('loading');
+	let reason = $state<Reason>(null);
 	let statusMsg = $state('');
 	let popup = $state(false);
 	let popupTimer = 0;
@@ -46,8 +46,8 @@
 		error: 'Fehler'
 	};
 	const voiceStatus = $derived(
-		reason === 'loading'
-			? MSG.loading
+		reason === 'checking'
+			? ''
 			: active
 				? PHASE_MSG.recording
 				: busy
@@ -57,16 +57,55 @@
 						: ''
 	);
 
-	onMount(async () => {
-		try {
-			const r = await fetch('/api/voice-status');
-			const data = await r.json().catch(() => ({}));
-			reason = r.ok ? (data.reason ?? null) : 'error';
-			if (data.message) statusMsg = data.message;
-		} catch {
-			reason = 'error';
-		}
+	function logClientEvent(event: string, fields: Record<string, unknown> = {}) {
+		void fetch('/api/client-log', {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({
+				event,
+				path: window.location.pathname,
+				userAgent: navigator.userAgent,
+				speechRecognition: Boolean(SR),
+				...fields
+			})
+		}).catch(() => {
+			/* diagnostics must never break the UI */
+		});
+	}
+
+	onMount(() => {
+		// Let the routed page render and restore graph focus before showing the
+		// voice backend validation state.
+		const timer = window.setTimeout(async () => {
+			reason = 'checking';
+			try {
+				const r = await fetch('/api/voice-status');
+				const data = await r.json().catch(() => ({}));
+				reason = r.ok ? (data.reason ?? null) : 'error';
+				if (data.message) statusMsg = data.message;
+			} catch {
+				reason = 'error';
+			}
+		}, 900);
+		return () => window.clearTimeout(timer);
 	});
+
+	function stopCapture() {
+		active = false;
+		bars = Array(BARS).fill(0);
+		if (raf) cancelAnimationFrame(raf);
+		try {
+			rec?.stop();
+		} catch {
+			/* schon gestoppt */
+		}
+		rec = null;
+		interimTranscript = '';
+		stream?.getTracks().forEach((t) => t.stop());
+		void ctx?.close();
+		stream = null;
+		ctx = null;
+	}
 
 	function blockedClick() {
 		popup = true;
@@ -96,10 +135,21 @@
 		error = '';
 		transcript = '';
 		phase = 'recording';
+		if (!SR) {
+			logClientEvent('speech.unsupported');
+			error = 'Spracherkennung wird von diesem Browser nicht unterstützt — bitte Text eingeben.';
+			phase = 'error';
+			convoOpen = true;
+			return;
+		}
 		try {
 			stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-		} catch {
-			error = 'Kein Mikrofonzugriff';
+		} catch (e) {
+			logClientEvent('speech.microphone_failed', {
+				errorName: e instanceof Error ? e.name : undefined,
+				errorMessage: e instanceof Error ? e.message : String(e)
+			});
+			error = 'Kein Mikrofonzugriff — bitte Browser-Berechtigung prüfen.';
 			phase = 'error';
 			return;
 		}
@@ -125,67 +175,81 @@
 		};
 		tick();
 
-		if (SR) {
-			rec = new SR();
-			rec.lang = 'de-DE';
-			rec.continuous = true;
-			rec.interimResults = true;
-			rec.onresult = (e: any) => {
-				let interim = '';
-				for (let i = e.resultIndex; i < e.results.length; i++) {
-					if (e.results[i].isFinal) {
-						transcript += e.results[i][0].transcript + ' ';
-					} else {
-						interim += e.results[i][0].transcript;
-					}
-				}
-				interimTranscript = interim;
-				console.log('[SR] result — final:', JSON.stringify(transcript), 'interim:', JSON.stringify(interim));
-			};
-			rec.onerror = (e: any) => {
-				console.warn('[SR] error:', e.error);
-				if (e.error === 'not-allowed') {
-					error = 'Kein Mikrofonzugriff';
-				} else if (e.error === 'no-speech') {
-					// no-speech is expected; don't show an error
-				} else if (e.error === 'network') {
-					error = 'Netzwerkfehler bei der Spracherkennung';
-				} else if (e.error === 'audio-capture') {
-					error = 'Mikrofon nicht verfügbar';
-				} else if (e.error === 'aborted') {
-					// aborted intentionally, ignore
+		rec = new SR();
+		rec.lang = 'de-DE';
+		rec.continuous = true;
+		rec.interimResults = true;
+		rec.onresult = (e: any) => {
+			let interim = '';
+			for (let i = e.resultIndex; i < e.results.length; i++) {
+				if (e.results[i].isFinal) {
+					transcript += e.results[i][0].transcript + ' ';
 				} else {
-					error = `Spracherkennungsfehler: ${e.error}`;
+					interim += e.results[i][0].transcript;
 				}
-			};
-			rec.onstart = () => console.log('[SR] started');
-			rec.onend = () => {
-				console.log('[SR] ended, active:', active);
-				interimTranscript = '';
-				// On mobile, SR auto-stops after silence — restart if still recording
-				if (active && rec) {
-					try { rec.start(); } catch { /* already started */ }
+			}
+			interimTranscript = interim;
+			console.log('[SR] result — final:', JSON.stringify(transcript), 'interim:', JSON.stringify(interim));
+		};
+		rec.onerror = (e: any) => {
+			const code = String(e.error ?? 'unknown');
+			console.warn('[SR] error:', code, e.message);
+			logClientEvent('speech.recognition_error', {
+				errorCode: code,
+				errorMessage: e.message ? String(e.message) : undefined,
+				phase,
+				hadTranscript: Boolean(transcript.trim() || interimTranscript.trim())
+			});
+			if (code === 'no-speech') {
+				error = 'Noch nichts verstanden — sprich bitte weiter oder tippe unten.';
+				return;
+			}
+			if (code === 'aborted') return;
+			if (code === 'not-allowed') {
+				error = 'Kein Mikrofonzugriff — bitte Browser-Berechtigung erlauben.';
+			} else if (code === 'service-not-allowed') {
+				error = 'Spracherkennung ist vom Browser oder Gerät blockiert.';
+			} else if (code === 'network') {
+				error = 'Netzwerkfehler bei der Browser-Spracherkennung.';
+			} else if (code === 'audio-capture') {
+				error = 'Mikrofon nicht verfügbar — Eingabegerät prüfen.';
+			} else if (code === 'language-not-supported') {
+				error = 'Deutsch wird von dieser Browser-Spracherkennung nicht unterstützt.';
+			} else {
+				error = `Spracherkennungsfehler: ${code}`;
+			}
+			phase = 'error';
+			stopCapture();
+			convoOpen = true;
+		};
+		rec.onstart = () => {
+			logClientEvent('speech.recognition_started');
+			console.log('[SR] started');
+		};
+		rec.onend = () => {
+			console.log('[SR] ended, active:', active);
+			interimTranscript = '';
+			// On mobile, SR auto-stops after silence — restart if still recording
+			if (active && rec) {
+				try {
+					rec.start();
+				} catch {
+					/* already started */
 				}
-			};
-			rec.start();
-		}
-	}
-
-	function stopCapture() {
-		active = false;
-		bars = Array(BARS).fill(0);
-		if (raf) cancelAnimationFrame(raf);
+			}
+		};
 		try {
-			rec?.stop();
-		} catch {
-			/* schon gestoppt */
+			rec.start();
+		} catch (e) {
+			logClientEvent('speech.start_failed', {
+				errorName: e instanceof Error ? e.name : undefined,
+				errorMessage: e instanceof Error ? e.message : String(e)
+			});
+			error = 'Spracherkennung konnte nicht gestartet werden — bitte erneut versuchen oder Text eingeben.';
+			phase = 'error';
+			stopCapture();
+			convoOpen = true;
 		}
-		rec = null;
-		interimTranscript = '';
-		stream?.getTracks().forEach((t) => t.stop());
-		ctx?.close();
-		stream = null;
-		ctx = null;
 	}
 
 	function cancel() {
