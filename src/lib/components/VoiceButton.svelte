@@ -119,6 +119,7 @@
 	let rec: any = null;
 	let transcript = $state('');
 	let interimTranscript = $state('');
+	let lastInterimTranscript = '';
 
 	// Overlay is open while recording or while a conversation is in progress.
 	const overlayOpen = $derived(active || convoOpen);
@@ -134,6 +135,8 @@
 	async function start() {
 		error = '';
 		transcript = '';
+		interimTranscript = '';
+		lastInterimTranscript = '';
 		phase = 'recording';
 		if (!SR) {
 			logClientEvent('speech.unsupported');
@@ -184,11 +187,17 @@
 			for (let i = e.resultIndex; i < e.results.length; i++) {
 				if (e.results[i].isFinal) {
 					transcript += e.results[i][0].transcript + ' ';
+					lastInterimTranscript = '';
 				} else {
 					interim += e.results[i][0].transcript;
 				}
 			}
 			interimTranscript = interim;
+			if (interim.trim()) lastInterimTranscript = interim;
+			logClientEvent('speech.recognition_result', {
+				finalChars: transcript.trim().length,
+				interimChars: interim.trim().length
+			});
 			console.log('[SR] result — final:', JSON.stringify(transcript), 'interim:', JSON.stringify(interim));
 		};
 		rec.onerror = (e: any) => {
@@ -256,13 +265,18 @@
 		stopCapture();
 		transcript = '';
 		interimTranscript = '';
+		lastInterimTranscript = '';
 		phase = 'idle';
 	}
 
 	async function confirm() {
+		const text = [transcript, interimTranscript || lastInterimTranscript].join(' ').trim();
 		stopCapture();
-		const text = transcript.trim();
 		if (!text) {
+			logClientEvent('speech.empty_confirm', {
+				hadFinal: Boolean(transcript.trim()),
+				hadInterim: Boolean(interimTranscript.trim() || lastInterimTranscript.trim())
+			});
 			error = SR
 				? 'Nichts verstanden — bitte erneut.'
 				: 'Spracherkennung nicht verfügbar — bitte tippen.';

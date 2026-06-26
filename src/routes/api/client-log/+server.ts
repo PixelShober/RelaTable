@@ -10,8 +10,12 @@ const ALLOWED_FIELDS = new Set([
 	'errorCode',
 	'errorMessage',
 	'errorName',
+	'finalChars',
+	'hadFinal',
 	'phase',
-	'hadTranscript'
+	'hadInterim',
+	'hadTranscript',
+	'interimChars'
 ]);
 
 function sanitizeValue(value: unknown) {
