@@ -58,6 +58,46 @@ describe('agentLoop', () => {
 		expect(r.reply).toMatch(/verschachtelt/);
 	});
 
+	it('gibt nach leerem Ergebnis post-Tool-Aufruf eine Korrektur-Nachricht und läuft weiter', async () => {
+		const script: Msg[] = [
+			{ role: 'assistant', content: null, tool_calls: [{ id: 't1', type: 'function', function: { name: 'search_persons', arguments: '{}' } }] },
+			{ role: 'assistant', content: '   ' }, // whitespace-only after tool use → corrective injected
+			{ role: 'assistant', content: 'Erledigt nach Korrektur.' }
+		];
+		let i = 0;
+		const corrections: string[] = [];
+		const r = await agentLoop({
+			messages: [{ role: 'user', content: 'Test.' }],
+			tools,
+			chat: async (msgs) => {
+				// capture corrective message injected into conversation
+				const last = msgs[msgs.length - 1];
+				if (last.role === 'user' && i > 1) corrections.push(last.content ?? '');
+				return script[i++];
+			},
+			callTool: async () => 'ok'
+		});
+		expect(corrections).toHaveLength(1);
+		expect(r.reply).toBe('Erledigt nach Korrektur.');
+	});
+
+	it('gibt deutschen Fallback zurück wenn auch nach Korrektur kein Inhalt kommt', async () => {
+		const script: Msg[] = [
+			{ role: 'assistant', content: null, tool_calls: [{ id: 't1', type: 'function', function: { name: 'search_persons', arguments: '{}' } }] },
+			{ role: 'assistant', content: '' }, // empty → corrective injected
+			{ role: 'assistant', content: null } // still empty → fallback
+		];
+		let i = 0;
+		const r = await agentLoop({
+			messages: [{ role: 'user', content: 'Test.' }],
+			tools,
+			chat: async () => script[i++],
+			callTool: async () => 'ok'
+		});
+		expect(r.reply).toMatch(/keine Antwort/);
+		expect(r.reply).toMatch(/erneut/);
+	});
+
 	it('fällt bei fehlerhaften JSON-Args auf {} zurück und läuft weiter', async () => {
 		const receivedArgs: unknown[] = [];
 		const script: Msg[] = [

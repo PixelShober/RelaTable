@@ -319,6 +319,7 @@ export async function agentLoop(opts: {
 }): Promise<{ reply: string; messages: Msg[]; wrote: boolean }> {
 	const { messages, tools, chat, callTool, maxSteps = 24, traceId = newTraceId() } = opts;
 	let wrote = false;
+	let emptyCorrected = false;
 	const startedAt = Date.now();
 	for (let step = 0; step < maxSteps; step++) {
 		logNarrate('info', 'agent.step.start', { traceId, step, toolCount: tools.length, ...msgStats(messages) });
@@ -326,8 +327,23 @@ export async function agentLoop(opts: {
 		messages.push(m);
 		logNarrate('info', 'agent.step.llm_done', { traceId, step, replyChars: m.content?.length ?? 0, toolCallCount: m.tool_calls?.length ?? 0 });
 		if (!m.tool_calls?.length) {
-			logNarrate('info', 'agent.done', { traceId, steps: step + 1, wrote, durationMs: Date.now() - startedAt, replyChars: m.content?.length ?? 0 });
-			return { reply: m.content ?? '', messages, wrote };
+			if (!m.content?.trim()) {
+				const hadToolUse = messages.some((msg) => msg.role === 'tool');
+				logNarrate('warn', 'agent.empty_reply', { traceId, step, wrote, hadToolUse });
+				if (!emptyCorrected && hadToolUse) {
+					messages.push({ role: 'user', content: 'Bitte gib eine kurze Zusammenfassung der ausgeführten Aktionen aus.' });
+					emptyCorrected = true;
+					continue;
+				}
+				logNarrate('info', 'agent.done', { traceId, steps: step + 1, wrote, durationMs: Date.now() - startedAt, replyChars: 0 });
+				return {
+					reply: 'Das Modell hat keine Antwort erzeugt. Bitte formuliere deine Anfrage neu oder versuche es erneut.',
+					messages,
+					wrote
+				};
+			}
+			logNarrate('info', 'agent.done', { traceId, steps: step + 1, wrote, durationMs: Date.now() - startedAt, replyChars: m.content!.length });
+			return { reply: m.content!, messages, wrote };
 		}
 		for (const tc of m.tool_calls) {
 			let args: unknown = {};
