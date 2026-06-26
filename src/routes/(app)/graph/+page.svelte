@@ -178,7 +178,8 @@
 					'transition-duration': '0.35s'
 				}
 			},
-			{ selector: 'edge.dim', style: { opacity: 0.06 } },
+			// Inactive edges in focus mode should be visual context only.
+			{ selector: 'edge.dim', style: { opacity: 0.06, events: 'no', 'overlay-opacity': 0 } },
 			{ selector: 'edge.focus-edge', style: { width: 5, opacity: 1 } },
 			{ selector: 'edge.hidden', style: { display: 'none' } }
 		];

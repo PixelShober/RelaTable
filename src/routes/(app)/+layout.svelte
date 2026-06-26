@@ -115,11 +115,13 @@
 		</button>
 	</nav>
 
-	<!-- Global voice FAB + overlay -->
-	<VoiceButton
-		narrateAutoApprove={data.narrateAutoApprove}
-		narratePragmaticMode={data.narratePragmaticMode}
-	/>
+	<!-- Voice input is only part of the graph workflow. -->
+	{#if path === '/graph'}
+		<VoiceButton
+			narrateAutoApprove={data.narrateAutoApprove}
+			narratePragmaticMode={data.narratePragmaticMode}
+		/>
+	{/if}
 
 	<!-- "Mehr" sheet -->
 	{#if moreOpen}

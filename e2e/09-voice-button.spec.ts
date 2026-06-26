@@ -13,6 +13,11 @@ test.describe('Voice Button (SCR-060)', () => {
 		await expect(page.getByRole('button', { name: 'Mikrofon starten' })).toBeVisible();
 	});
 
+	test('FAB is hidden outside the graph page', async ({ page }) => {
+		await page.goto('/personen');
+		await expect(page.getByRole('button', { name: 'Mikrofon starten' })).toHaveCount(0);
+	});
+
 	test('blocked button shows popup with no-key message', async ({ page }) => {
 		await page.goto('/graph');
 		const btn = page.getByRole('button', { name: 'Mikrofon starten' });
