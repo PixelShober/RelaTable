@@ -18,6 +18,8 @@
 	let searchQ = $state('');
 	let searchInput: HTMLInputElement;
 	let searchTimer: ReturnType<typeof setTimeout>;
+	let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+	let suppressTapUntil = 0;
 
 	// Filter only after the user pauses typing for 500ms.
 	function onSearchInput() {
@@ -112,6 +114,7 @@
 		});
 
 		cy.on('tap', 'node', (evt: any) => {
+			if (Date.now() < suppressTapUntil) return;
 			const n = evt.target;
 			const id = Number(n.id());
 			const meta = data.graph.nodes.find((x) => x.id === id)!;
@@ -124,12 +127,29 @@
 		const openMenu = (evt: any) => {
 			const id = Number(evt.target.id());
 			const meta = data.graph.nodes.find((x) => x.id === id)!;
-			const pos = evt.target.renderedPosition();
+			const pos = evt.renderedPosition ?? evt.target.renderedPosition();
 			menu = { id, name: meta.name, x: pos.x, y: pos.y };
 			panel = null;
 		};
+		const clearLongPress = () => {
+			if (longPressTimer) clearTimeout(longPressTimer);
+			longPressTimer = null;
+		};
+		cy.on('tapstart', 'node', (evt: any) => {
+			clearLongPress();
+			longPressTimer = setTimeout(() => {
+				suppressTapUntil = Date.now() + 700;
+				openMenu(evt);
+				longPressTimer = null;
+			}, 550);
+		});
+		cy.on('tapend tapdrag', clearLongPress);
 		cy.on('cxttap', 'node', openMenu);
-		cy.on('taphold', 'node', openMenu);
+		cy.on('taphold', 'node', (evt: any) => {
+			clearLongPress();
+			suppressTapUntil = Date.now() + 700;
+			openMenu(evt);
+		});
 		cy.on('tap', 'edge', (evt: any) => {
 			const e = evt.target;
 			goto(`/pair/${e.data('source')}-${e.data('target')}`);
@@ -345,6 +365,7 @@
 		window.addEventListener('keydown', onKey);
 		return () => {
 			window.removeEventListener('keydown', onKey);
+			if (longPressTimer) clearTimeout(longPressTimer);
 			cy?.destroy();
 		};
 	});
