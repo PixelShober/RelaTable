@@ -205,6 +205,9 @@
 	function nodeSize(degree: number) {
 		return Math.min(60, 26 + degree * 4);
 	}
+	function clamp(value: number, min: number, max: number) {
+		return Math.min(Math.max(value, min), max);
+	}
 
 	async function initCy() {
 		const cytoscape = (await import('cytoscape')).default;
@@ -241,7 +244,7 @@
 			if (!isInteractiveNode(evt.target)) return;
 			const id = Number(evt.target.id());
 			const meta = data.graph.nodes.find((x) => x.id === id)!;
-			const pos = evt.renderedPosition ?? evt.target.renderedPosition();
+			const pos = evt.target.renderedPosition();
 			menu = { id, name: meta.name, x: pos.x, y: pos.y };
 			panel = null;
 		};
@@ -577,7 +580,7 @@
 	<!-- Right-click / long-press context menu -->
 	{#if menu}
 		<div class="absolute z-20 w-44 overflow-hidden rounded-lg border border-line bg-card text-sm shadow-lg"
-			style="left:{Math.min(menu.x, (container?.clientWidth ?? 300) - 184)}px; top:{menu.y}px">
+			style="left:{clamp(menu.x - 88, 8, (container?.clientWidth ?? 300) - 184)}px; top:{menu.y}px">
 			<a class="block border-b border-line px-3 py-2 hover:bg-bg" href={`/personen/${menu!.id}/bearbeiten?return=graph`}>Profil bearbeiten</a>
 			<a class="block border-b border-line px-3 py-2 hover:bg-bg" href={`/personen/${menu!.id}/bearbeiten?pick=1&return=graph`}>Bild ändern</a>
 			<a class="block border-b border-line px-3 py-2 hover:bg-bg" href={`/personen/${menu!.id}/review`}>Review Verbindung</a>
