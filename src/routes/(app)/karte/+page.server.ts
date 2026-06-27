@@ -1,14 +1,21 @@
 import { db } from '$lib/server/db';
 import { coordsFor } from '$lib/server/geo';
 import { formatImprecise, type TimeKind } from '$lib/domain/time';
+import { currentTypeName, colorForType, loadRelTypes, toPeriods } from '$lib/server/queries';
+import { TYPE_COLORS } from '$lib/domain/relationships';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const ownerId = locals.user!.id;
 
-	const [persons, events] = await Promise.all([
+	const [persons, events, connections, types] = await Promise.all([
 		db.person.findMany({ where: { ownerId }, include: { location: true } }),
-		db.event.findMany({ where: { ownerId }, include: { location: true, eventType: true } })
+		db.event.findMany({ where: { ownerId }, include: { location: true, eventType: true } }),
+		db.connection.findMany({
+			where: { ownerId },
+			include: { periods: { select: { relationshipTypeId: true, validFrom: true, validTo: true } } }
+		}),
+		loadRelTypes()
 	]);
 
 	// Stored coords if present, else resolve from the city name at read time. This self-heals rows
@@ -33,6 +40,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 			image: p.profileImagePath ? `/uploads/${p.profileImagePath}` : p.profileImageUrl
 		}));
 
+	const coordsByPersonId = new Map<number, { lat: number; lng: number }>(
+		personMarkers.map((p) => [p.id, { lat: p.lat, lng: p.lng }])
+	);
+
 	const eventMarkers = events
 		.map((e) => ({ e, c: coordsOf(e.location) }))
 		.filter((x): x is { e: (typeof events)[number]; c: [number, number] } => !!x.c)
@@ -47,6 +58,24 @@ export const load: PageServerLoad = async ({ locals }) => {
 			when: formatImprecise({ kind: e.occurredAtKind as TimeKind, date: e.occurredAt, text: e.occurredAtText })
 		}));
 
+	const connectionSegments = connections
+		.map((connection) => {
+			const from = coordsByPersonId.get(connection.personLowId);
+			const to = coordsByPersonId.get(connection.personHighId);
+			if (!from || !to) return null;
+			const typeName = currentTypeName(toPeriods(connection.periods), types);
+			return {
+				id: connection.id,
+				sourceId: connection.personLowId,
+				targetId: connection.personHighId,
+				typeName,
+				color: colorForType(typeName),
+				from,
+				to
+			};
+		})
+		.filter((segment): segment is NonNullable<typeof segment> => !!segment);
+
 	// Items without a usable location are listed separately, never mis-placed (AC-093).
 	const missingPersons = persons.filter((p) => !coordsOf(p.location)).length;
 	const missingEvents = events.filter((e) => !coordsOf(e.location)).length;
@@ -54,6 +83,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 	return {
 		personMarkers,
 		eventMarkers,
+		connectionSegments,
+		connectionLegend: [
+			{ label: 'Bekanntschaft', color: TYPE_COLORS['Bekanntschaft'] },
+			{ label: 'Freundschaft', color: TYPE_COLORS['Freundschaft'] },
+			{ label: 'Enge Freundschaft', color: TYPE_COLORS['Enge Freundschaft'] },
+			{ label: 'Romantik', color: TYPE_COLORS['Romantik'] }
+		],
 		missing: { persons: missingPersons, events: missingEvents },
 		provider: process.env.PUBLIC_MAP_PROVIDER || 'leaflet'
 	};

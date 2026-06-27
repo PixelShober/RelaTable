@@ -15,5 +15,10 @@ test.describe('Karte (SCR-060/061)', () => {
 
 		// Items without coordinates are listed separately (AC-093).
 		await expect(page.getByText('Ohne Standort')).toBeVisible();
+
+		// The map can switch into a graph-like people/connections mode.
+		await page.getByLabel('Nur Personen und Verbindungen').check();
+		await expect(page.getByText('Verbindungen', { exact: true })).toBeVisible();
+		await expect(page.getByText('Freundschaft', { exact: true })).toBeVisible();
 	});
 });

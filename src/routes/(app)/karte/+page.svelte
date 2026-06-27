@@ -9,27 +9,34 @@
 	let { data } = $props();
 
 	let mapEl: HTMLDivElement;
+	let legendEl = $state<HTMLDivElement | undefined>();
 	let L: any = null;
 	let map: any = null;
 	let personCluster: any = null;
 	let eventCluster: any = null;
+	let connectionLayer: any = null;
 
 	let showPersons = $state(true);
 	let showEvents = $state(true);
 	let showSensitive = $state(false);
 	let eventType = $state('');
 	let filterOpen = $state(false); // mobile bottom-sheet
+	let showConnectionsOnly = $state(false);
+	let legendDimmed = $state(false);
 
 	const PERSON_COLOR = '#3a6ea5';
 	const EVENT_COLOR = '#b06a2c';
 
 	const eventTypes = $derived([...new Set(data.eventMarkers.map((e) => e.typeName))]);
+	const overlayVisible = $derived(showConnectionsOnly || data.missing.persons > 0 || data.missing.events > 0);
 
 	function markerSignature() {
 		return (
 			data.personMarkers.map((p) => `${p.id}:${p.name}:${p.city}:${p.lat}:${p.lng}`).join(',') +
 			'|' +
-			data.eventMarkers.map((e) => `${e.id}:${e.name}:${e.typeName}:${e.sensitive}:${e.when}:${e.lat}:${e.lng}`).join(',')
+			data.eventMarkers.map((e) => `${e.id}:${e.name}:${e.typeName}:${e.sensitive}:${e.when}:${e.lat}:${e.lng}`).join(',') +
+			'|' +
+			data.connectionSegments.map((c) => `${c.id}:${c.sourceId}:${c.targetId}:${c.typeName}:${c.color}`).join(',')
 		);
 	}
 
@@ -51,8 +58,9 @@
 		if (!map) return;
 		personCluster.clearLayers();
 		eventCluster.clearLayers();
+		connectionLayer.clearLayers();
 
-		if (showPersons) {
+		if (showPersons || showConnectionsOnly) {
 			for (const p of data.personMarkers) {
 				const m = L.marker([p.lat, p.lng], { icon: pinIcon(PERSON_COLOR) });
 				m.bindPopup(
@@ -61,7 +69,7 @@
 				personCluster.addLayer(m);
 			}
 		}
-		if (showEvents) {
+		if (showEvents && !showConnectionsOnly) {
 			for (const e of data.eventMarkers) {
 				if (e.sensitive && !showSensitive) continue;
 				if (eventType && e.typeName !== eventType) continue;
@@ -72,6 +80,58 @@
 				eventCluster.addLayer(m);
 			}
 		}
+
+		if (showConnectionsOnly) {
+			for (const connection of data.connectionSegments) {
+				const line = L.polyline(
+					[
+						[connection.from.lat, connection.from.lng],
+						[connection.to.lat, connection.to.lng]
+					],
+					{
+						color: connection.color,
+						weight: 4,
+						opacity: 0.9
+					}
+				);
+				connectionLayer.addLayer(line);
+			}
+		}
+
+		updateLegendTransparency();
+	}
+
+	function updateLegendTransparency() {
+		if (!map || !legendEl) {
+			legendDimmed = false;
+			return;
+		}
+		const rect = legendEl.getBoundingClientRect();
+		const mapRect = mapEl.getBoundingClientRect();
+		let covered = false;
+		for (const marker of data.personMarkers) {
+			const point = map.latLngToContainerPoint([marker.lat, marker.lng]);
+			const x = point.x + mapRect.left;
+			const y = point.y + mapRect.top;
+			if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+				covered = true;
+				break;
+			}
+		}
+		if (!covered && !showConnectionsOnly) {
+			for (const marker of data.eventMarkers) {
+				if (marker.sensitive && !showSensitive) continue;
+				if (eventType && marker.typeName !== eventType) continue;
+				const point = map.latLngToContainerPoint([marker.lat, marker.lng]);
+				const x = point.x + mapRect.left;
+				const y = point.y + mapRect.top;
+				if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+					covered = true;
+					break;
+				}
+			}
+		}
+		legendDimmed = covered;
 	}
 
 	async function initMap() {
@@ -86,8 +146,11 @@
 
 		personCluster = L.markerClusterGroup({ iconCreateFunction: clusterIcon(PERSON_COLOR) });
 		eventCluster = L.markerClusterGroup({ iconCreateFunction: clusterIcon(EVENT_COLOR) });
+		connectionLayer = L.layerGroup();
+		map.addLayer(connectionLayer);
 		map.addLayer(personCluster);
 		map.addLayer(eventCluster);
+		map.on('move zoom resize', updateLegendTransparency);
 
 		rebuild();
 		// ?person=ID (from the graph "Auf Karte" menu) → zoom to that person's city; else fit all markers.
@@ -121,8 +184,16 @@
 		showEvents;
 		showSensitive;
 		eventType;
+		showConnectionsOnly;
 		if (!map || !mapReady) return;
 		rebuild();
+	});
+
+	$effect(() => {
+		showConnectionsOnly;
+		if (!showConnectionsOnly) return;
+		showPersons = true;
+		showEvents = false;
 	});
 
 	onMount(() => {
@@ -142,35 +213,59 @@
 
 	<!-- Filter panel (desktop) -->
 	<div class="absolute left-2.5 top-2.5 z-[500] hidden w-48 rounded-lg border border-line bg-card p-2.5 text-xs shadow md:block">
+		<label class="mb-2 flex items-center justify-between gap-2 rounded-md border border-line px-2 py-1.5">
+			<span class="text-[11px] font-medium leading-tight">Nur Personen + Verbindungen</span>
+			<input type="checkbox" aria-label="Nur Personen und Verbindungen" bind:checked={showConnectionsOnly} />
+		</label>
 		<b>Layer</b>
 		<label class="mt-1 flex items-center justify-between">
 			<span><span class="mr-1.5 inline-block h-2.5 w-2.5 rounded-full" style="background:{PERSON_COLOR}"></span>Personen</span>
-			<input type="checkbox" aria-label="Layer Personen" bind:checked={showPersons} />
+			<input type="checkbox" aria-label="Layer Personen" bind:checked={showPersons} disabled={showConnectionsOnly} />
 		</label>
 		<label class="mt-1 flex items-center justify-between">
 			<span><span class="mr-1.5 inline-block h-2.5 w-2.5 rounded-full" style="background:{EVENT_COLOR}"></span>Ereignisse</span>
-			<input type="checkbox" aria-label="Layer Ereignisse" bind:checked={showEvents} />
+			<input type="checkbox" aria-label="Layer Ereignisse" bind:checked={showEvents} disabled={showConnectionsOnly} />
 		</label>
 		<hr class="my-1.5 border-line" />
 		<b>Filter</b>
 		<label class="mt-1 block">Eventtyp
-			<select class="inp mt-1" bind:value={eventType}>
+			<select class="inp mt-1" bind:value={eventType} disabled={showConnectionsOnly}>
 				<option value="">Alle</option>
 				{#each eventTypes as t}<option value={t}>{t}</option>{/each}
 			</select>
 		</label>
 		<label class="mt-1.5 flex items-center justify-between">
 			<span>⊙ Sensible</span>
-			<input type="checkbox" bind:checked={showSensitive} />
+			<input type="checkbox" bind:checked={showSensitive} disabled={showConnectionsOnly} />
 		</label>
 	</div>
 
-	<!-- Missing locations (AC-093) -->
-	{#if data.missing.persons > 0 || data.missing.events > 0}
-		<div class="absolute bottom-2.5 right-2.5 z-[500] max-w-[220px] rounded-lg border border-dashed border-line bg-card/95 p-2.5 text-xs">
-			<b>Ohne Standort</b>
-			<p class="mt-1 text-mut">Werden nicht falsch verortet, sondern separat gelistet:</p>
-			<p class="mt-1">• {data.missing.persons} Personen ohne Ort<br />• {data.missing.events} Ereignisse ohne Ort</p>
+	{#if overlayVisible}
+		<div
+			bind:this={legendEl}
+			class={`legend-overlay absolute right-2.5 z-[500] w-[220px] max-w-[calc(100%-1.25rem)] rounded-lg border border-line bg-card/95 p-2.5 text-xs shadow transition-opacity duration-200 ${legendDimmed ? 'opacity-20' : 'opacity-100'}`}
+		>
+			{#if showConnectionsOnly}
+				<b>Verbindungen</b>
+				<div class="mt-1 space-y-1">
+					{#each data.connectionLegend as item}
+						<div class="flex items-center gap-2">
+							<span class="inline-block h-0.5 w-5 rounded-full" style={`background:${item.color}`}></span>
+							<span>{item.label}</span>
+						</div>
+					{/each}
+				</div>
+			{/if}
+			{#if data.missing.persons > 0 || data.missing.events > 0}
+				<div class={showConnectionsOnly ? 'mt-2 border-t border-line pt-2' : ''}>
+					<b>Ohne Standort</b>
+					<p class="mt-1 text-mut">Werden nicht falsch verortet, sondern separat gelistet:</p>
+					<p class="mt-1">
+						• {data.missing.persons} Personen ohne Ort<br />
+						• {data.missing.events} Ereignisse ohne Ort
+					</p>
+				</div>
+			{/if}
 		</div>
 	{/if}
 
@@ -179,10 +274,26 @@
 		<div class="absolute inset-0 z-[600] bg-black/30 md:hidden" role="button" tabindex="-1" aria-label="Schließen" onclick={() => (filterOpen = false)} onkeydown={() => {}}></div>
 		<div class="absolute inset-x-0 bottom-0 z-[700] rounded-t-2xl border-t border-line bg-card p-4 text-sm md:hidden">
 			<div class="mx-auto mb-3 h-1 w-10 rounded-full bg-line"></div>
-			<label class="flex items-center justify-between py-1.5"><span>Personen</span><input type="checkbox" bind:checked={showPersons} /></label>
-			<label class="flex items-center justify-between py-1.5"><span>Ereignisse</span><input type="checkbox" bind:checked={showEvents} /></label>
-			<label class="flex items-center justify-between py-1.5"><span>Sensible</span><input type="checkbox" bind:checked={showSensitive} /></label>
+			<label class="flex items-center justify-between py-1.5">
+				<span>Nur Personen + Verbindungen</span>
+				<input type="checkbox" aria-label="Mobil nur Personen und Verbindungen" bind:checked={showConnectionsOnly} />
+			</label>
+			<label class="flex items-center justify-between py-1.5"><span>Personen</span><input type="checkbox" bind:checked={showPersons} disabled={showConnectionsOnly} /></label>
+			<label class="flex items-center justify-between py-1.5"><span>Ereignisse</span><input type="checkbox" bind:checked={showEvents} disabled={showConnectionsOnly} /></label>
+			<label class="flex items-center justify-between py-1.5"><span>Sensible</span><input type="checkbox" bind:checked={showSensitive} disabled={showConnectionsOnly} /></label>
 			<button class="btn mt-2 w-full justify-center" onclick={() => (filterOpen = false)}>Schließen</button>
 		</div>
 	{/if}
 </div>
+
+<style>
+	.legend-overlay {
+		bottom: calc(env(safe-area-inset-bottom, 0px) + 6.5rem);
+	}
+
+	@media (min-width: 768px) {
+		.legend-overlay {
+			bottom: 0.625rem;
+		}
+	}
+</style>
