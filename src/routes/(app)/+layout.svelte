@@ -23,7 +23,7 @@
 	}
 </script>
 
-<div class="flex h-screen w-screen overflow-hidden bg-bg">
+<div class="flex h-screen w-screen overflow-hidden bg-bg" style="--mobile-tab-bar-height: 4rem;">
 	<!-- Desktop icon rail (SCR-003) -->
 	<nav
 		class="hidden flex-none flex-col gap-1 border-r border-line bg-rail p-2 transition-[width] duration-150 md:flex {expanded

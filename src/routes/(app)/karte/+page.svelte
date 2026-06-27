@@ -30,6 +30,10 @@
 	const eventTypes = $derived([...new Set(data.eventMarkers.map((e) => e.typeName))]);
 	const overlayVisible = $derived(showConnectionsOnly || data.missing.persons > 0 || data.missing.events > 0);
 
+	function isPointInsideRect(x: number, y: number, rect: DOMRect) {
+		return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+	}
+
 	function markerSignature() {
 		return (
 			data.personMarkers.map((p) => `${p.id}:${p.name}:${p.city}:${p.lat}:${p.lng}`).join(',') +
@@ -113,7 +117,7 @@
 			const point = map.latLngToContainerPoint([marker.lat, marker.lng]);
 			const x = point.x + mapRect.left;
 			const y = point.y + mapRect.top;
-			if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+			if (isPointInsideRect(x, y, rect)) {
 				covered = true;
 				break;
 			}
@@ -125,7 +129,7 @@
 				const point = map.latLngToContainerPoint([marker.lat, marker.lng]);
 				const x = point.x + mapRect.left;
 				const y = point.y + mapRect.top;
-				if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+				if (isPointInsideRect(x, y, rect)) {
 					covered = true;
 					break;
 				}
@@ -243,6 +247,7 @@
 	{#if overlayVisible}
 		<div
 			bind:this={legendEl}
+			data-testid="map-legend-overlay"
 			class={`legend-overlay absolute right-2.5 z-[500] w-[220px] max-w-[calc(100%-1.25rem)] rounded-lg border border-line bg-card/95 p-2.5 text-xs shadow transition-opacity duration-200 ${legendDimmed ? 'opacity-20' : 'opacity-100'}`}
 		>
 			{#if showConnectionsOnly}
@@ -288,7 +293,7 @@
 
 <style>
 	.legend-overlay {
-		bottom: calc(env(safe-area-inset-bottom, 0px) + 6.5rem);
+		bottom: calc(var(--mobile-tab-bar-height, 4rem) + env(safe-area-inset-bottom, 0px) + 0.75rem);
 	}
 
 	@media (min-width: 768px) {

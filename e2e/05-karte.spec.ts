@@ -21,4 +21,19 @@ test.describe('Karte (SCR-060/061)', () => {
 		await expect(page.getByText('Verbindungen', { exact: true })).toBeVisible();
 		await expect(page.getByText('Freundschaft', { exact: true })).toBeVisible();
 	});
+
+	test('mobile legend stays above the bottom navigation', async ({ page }) => {
+		await page.setViewportSize({ width: 390, height: 844 });
+		await page.goto('/karte');
+		const legend = page.getByTestId('map-legend-overlay');
+		const bottomNav = page.getByRole('navigation', { name: 'Hauptnavigation mobil' });
+		await expect(legend).toBeVisible();
+		await expect(bottomNav).toBeVisible();
+
+		const legendBox = await legend.boundingBox();
+		const navBox = await bottomNav.boundingBox();
+		expect(legendBox).not.toBeNull();
+		expect(navBox).not.toBeNull();
+		expect(legendBox!.y + legendBox!.height).toBeLessThanOrEqual(navBox!.y);
+	});
 });

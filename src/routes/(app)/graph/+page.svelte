@@ -8,12 +8,14 @@
 	let { data, form } = $props();
 
 	let container: HTMLDivElement;
+	let legendEl = $state<HTMLDivElement | undefined>();
 	let cy: any = null;
 	const basePos = new Map<string, { x: number; y: number }>(); // layout positions, restored before each focus
 	let layoutName = $state('circle');
 	let panel = $state<null | { id: number; name: string; city: string | null; degree: number; x: number; y: number }>(null);
 	let menu = $state<null | { id: number; name: string; x: number; y: number }>(null);
 	let darkLabels = false;
+	let legendDimmed = $state(false);
 
 	let searchOpen = $state(false);
 	let searchQ = $state('');
@@ -208,6 +210,26 @@
 	function clamp(value: number, min: number, max: number) {
 		return Math.min(Math.max(value, min), max);
 	}
+	function isPointInsideRect(x: number, y: number, rect: DOMRect) {
+		return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+	}
+	function updateLegendTransparency() {
+		if (!cy || !legendEl || !container) {
+			legendDimmed = false;
+			return;
+		}
+		const rect = legendEl.getBoundingClientRect();
+		const containerRect = container.getBoundingClientRect();
+		let covered = false;
+		cy.nodes(':visible').forEach((node: any) => {
+			if (covered) return;
+			const point = node.renderedPosition();
+			const x = containerRect.left + point.x;
+			const y = containerRect.top + point.y;
+			if (isPointInsideRect(x, y, rect)) covered = true;
+		});
+		legendDimmed = covered;
+	}
 
 	async function initCy() {
 		const cytoscape = (await import('cytoscape')).default;
@@ -279,7 +301,10 @@
 				mergeDialog = null;
 			}
 		});
-		cy.on('pan zoom', updateFloatingPositions);
+		cy.on('pan zoom resize', () => {
+			updateFloatingPositions();
+			updateLegendTransparency();
+		});
 
 		// On first load with a focus, settle positions synchronously so applyFocus reads final
 		// coordinates (animated layout would leave it reading mid-flight positions → wrong ring/zoom).
@@ -292,6 +317,7 @@
 		}
 		graphSig = graphSignature(); // baseline: don't let the rebuild effect fire on first pass
 		graphReady = true;
+		updateLegendTransparency();
 	}
 
 	// Cheap content signature: focus navigation (?focus=…) re-runs the server load → `data.graph`
@@ -463,6 +489,13 @@
 		layoutName;
 		if (cy && focusId == null) runLayout();
 	});
+	$effect(() => {
+		focusId;
+		panel;
+		menu;
+		if (!cy) return;
+		queueMicrotask(updateLegendTransparency);
+	});
 
 	onMount(() => {
 		// Restore last focus when arriving without an explicit ?focus (e.g. via nav after editing).
@@ -543,7 +576,11 @@
 	{/if}
 
 	<!-- Legend (SCR-020 ②) -->
-	<div class="absolute right-2.5 top-2.5 rounded-lg border border-line bg-card p-2 text-[11px] shadow-sm">
+	<div
+		bind:this={legendEl}
+		data-testid="graph-legend-overlay"
+		class={`absolute right-2.5 top-2.5 rounded-lg border border-line bg-card p-2 text-[11px] shadow-sm transition-opacity duration-200 ${legendDimmed ? 'opacity-20' : 'opacity-100'}`}
+	>
 		<b>Legende</b>
 		{#each data.legend as l}
 			<div class="mt-0.5 flex items-center gap-1.5">
