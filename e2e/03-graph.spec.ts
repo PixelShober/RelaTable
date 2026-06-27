@@ -16,8 +16,15 @@ test.describe('Graph (SCR-020/021)', () => {
 	test('focus mode shows the focused person and a back control', async ({ page }) => {
 		await page.goto('/graph?focus=1');
 		await expect(page.getByText(/Fokus: /)).toBeVisible();
-		await expect(page.getByText('Tiefe 1')).toBeVisible();
+		await expect(page.getByText('Tiefe 1')).not.toBeVisible();
 		await page.getByRole('button', { name: '‹ Zurück' }).click();
+		await expect(page).toHaveURL(/\/graph$/);
+	});
+
+	test('double click on empty graph area clears focus', async ({ page }) => {
+		await page.goto('/graph?focus=1');
+		await expect(page).toHaveURL(/\/graph\?focus=1$/);
+		await page.locator('canvas').first().dblclick({ position: { x: 24, y: 24 } });
 		await expect(page).toHaveURL(/\/graph$/);
 	});
 

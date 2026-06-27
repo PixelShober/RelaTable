@@ -261,6 +261,11 @@
 			if (!isInteractiveNode(evt.target)) return;
 			focusOn(Number(evt.target.id()));
 		});
+		cy.on('dbltap', (evt: any) => {
+			if (evt.target === cy && focusId != null) {
+				clearFocus();
+			}
+		});
 		// Right-click opens the context menu (browser menu suppressed on the wrapper div).
 		const openMenu = (evt: any) => {
 			if (!isInteractiveNode(evt.target)) return;
@@ -528,7 +533,7 @@
 
 <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
 	{#if focusId && focusName}
-		<Topbar title={`Fokus: ${focusName}`} subtitle="Tiefe 1">
+		<Topbar title={`Fokus: ${focusName}`}>
 			<button class="btn btn-sm" onclick={clearFocus}>‹ Zurück</button>
 		</Topbar>
 	{:else}
