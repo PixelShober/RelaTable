@@ -82,35 +82,35 @@
 	</nav>
 
 	<!-- Content -->
-	<div class="flex min-w-0 flex-1 flex-col overflow-hidden pb-20 md:pb-0">
+	<div class="flex min-w-0 flex-1 flex-col overflow-hidden pb-16 md:pb-0">
 		{@render children()}
 	</div>
 
 	<!-- Mobile bottom tab bar (SCR-004) -->
 	<nav
-		class="fixed inset-x-0 bottom-0 z-30 flex h-20 border-t border-line bg-card md:hidden"
+		class="fixed inset-x-0 bottom-0 z-30 flex h-16 border-t border-line bg-card md:hidden"
 		aria-label="Hauptnavigation mobil"
 	>
 		{#each MOBILE_TABS as tab}
 			{@const active = isActive(path, tab.match)}
 			<a
 				href={tab.href}
-				class="flex flex-1 flex-col items-center justify-center gap-1 text-[11px] leading-none {active
+				class="flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] leading-none {active
 					? 'font-semibold text-ink'
 					: 'text-mut'}"
 				aria-current={active ? 'page' : undefined}
 			>
-				<span class="flex h-10 w-[3.75rem] items-center justify-center rounded-[1.1rem] border border-line text-[1.5rem] {active ? 'bg-line/60' : 'bg-card'}">{tab.icon}</span>
+				<span class="flex h-8 w-12 items-center justify-center rounded-[1rem] border border-line text-[1.35rem] {active ? 'bg-line/60' : 'bg-card'}">{tab.icon}</span>
 				{tab.label}
 			</a>
 		{/each}
 		<button
-			class="flex flex-1 flex-col items-center justify-center gap-1 text-[11px] leading-none {moreOpen
+			class="flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] leading-none {moreOpen
 				? 'font-semibold text-ink'
 				: 'text-mut'}"
 			onclick={() => (moreOpen = true)}
 		>
-			<span class="flex h-10 w-[3.75rem] items-center justify-center rounded-[1.1rem] border border-line bg-card text-[1.5rem]">⋯</span>
+			<span class="flex h-8 w-12 items-center justify-center rounded-[1rem] border border-line bg-card text-[1.35rem]">⋯</span>
 			Mehr
 		</button>
 	</nav>
