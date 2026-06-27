@@ -526,25 +526,26 @@
 
 <svelte:head><title>Graph – RelaTable</title></svelte:head>
 
-{#if focusId && focusName}
-	<Topbar title={`Fokus: ${focusName}`} subtitle="Tiefe 1">
-		<button class="btn btn-sm" onclick={clearFocus}>‹ Zurück</button>
-	</Topbar>
-{:else}
-	<Topbar title="Graph" subtitle={`${data.graph.nodes.length} Personen`}>
-		<label class="flex items-center gap-1 text-xs text-mut">
-			Layout
-			<select class="inp btn-sm w-auto" bind:value={layoutName}>
-				<option value="circle">Kreis</option>
-				<option value="concentric">Konzentrisch</option>
-				<option value="grid">Raster</option>
-			</select>
-		</label>
-	</Topbar>
-{/if}
+<div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+	{#if focusId && focusName}
+		<Topbar title={`Fokus: ${focusName}`} subtitle="Tiefe 1">
+			<button class="btn btn-sm" onclick={clearFocus}>‹ Zurück</button>
+		</Topbar>
+	{:else}
+		<Topbar title="Graph" subtitle={`${data.graph.nodes.length} Personen`}>
+			<label class="flex items-center gap-1 text-xs text-mut">
+				Layout
+				<select class="inp btn-sm w-auto" bind:value={layoutName}>
+					<option value="circle">Kreis</option>
+					<option value="concentric">Konzentrisch</option>
+					<option value="grid">Raster</option>
+				</select>
+			</label>
+		</Topbar>
+	{/if}
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="relative flex-1 overflow-hidden" oncontextmenu={(e) => e.preventDefault()}>
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div class="relative min-h-0 flex-1 overflow-hidden" oncontextmenu={(e) => e.preventDefault()}>
 	<div bind:this={container} class="absolute inset-0" style="touch-action: none"></div>
 
 	<!-- Ctrl+F search: slides in top-centre, pulls name matches to the middle live -->
@@ -671,4 +672,5 @@
 		</div>
 	{/if}
 
+	</div>
 </div>

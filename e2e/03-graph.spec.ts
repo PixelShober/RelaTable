@@ -43,4 +43,31 @@ test.describe('Graph (SCR-020/021)', () => {
 		// The merge dialog should not be visible initially.
 		await expect(page.getByText('Personen zusammenführen').first()).not.toBeVisible();
 	});
+
+	test('mobile topbar and legend stay visible while graph view scrolls', async ({ page }) => {
+		await page.setViewportSize({ width: 390, height: 844 });
+		await page.goto('/graph');
+
+		const topbar = page.locator('header').first();
+		const legend = page.getByTestId('graph-legend-overlay');
+
+		await expect(topbar).toBeVisible();
+		await expect(legend).toBeVisible();
+
+		const beforeTopbar = await topbar.boundingBox();
+		const beforeLegend = await legend.boundingBox();
+
+		await page.mouse.wheel(0, 1200);
+		await page.waitForTimeout(150);
+
+		const afterTopbar = await topbar.boundingBox();
+		const afterLegend = await legend.boundingBox();
+
+		expect(beforeTopbar).not.toBeNull();
+		expect(beforeLegend).not.toBeNull();
+		expect(afterTopbar).not.toBeNull();
+		expect(afterLegend).not.toBeNull();
+		expect(Math.abs((afterTopbar?.y ?? 0) - (beforeTopbar?.y ?? 0))).toBeLessThanOrEqual(1);
+		expect(Math.abs((afterLegend?.y ?? 0) - (beforeLegend?.y ?? 0))).toBeLessThanOrEqual(1);
+	});
 });
