@@ -54,6 +54,17 @@
 		});
 	}
 
+	function avatarPinIcon(person: { name: string; image?: string | null }) {
+		if (!person.image) return pinIcon(PERSON_COLOR);
+		return L.divIcon({
+			className: '',
+			html: `<div style="width:30px;height:30px;border-radius:50%;overflow:hidden;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35);background:${PERSON_COLOR}"><img src="${esc(person.image)}" alt="${esc(person.name)}" style="width:100%;height:100%;object-fit:cover;display:block" /></div>`,
+			iconSize: [30, 30],
+			iconAnchor: [15, 15],
+			popupAnchor: [0, -16]
+		});
+	}
+
 	function esc(s: string) {
 		return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 	}
@@ -66,7 +77,9 @@
 
 		if (showPersons || showConnectionsOnly) {
 			for (const p of data.personMarkers) {
-				const m = L.marker([p.lat, p.lng], { icon: pinIcon(PERSON_COLOR) });
+				const m = L.marker([p.lat, p.lng], {
+					icon: showConnectionsOnly ? avatarPinIcon(p) : pinIcon(PERSON_COLOR)
+				});
 				m.bindPopup(
 					`<b>${esc(p.name)}</b><br><span style="color:#777">${esc(p.city ?? 'Stadt')}</span><br><a href="/personen/${p.id}">Profil ↗</a>`
 				);
@@ -293,7 +306,7 @@
 
 <style>
 	.legend-overlay {
-		bottom: calc(var(--mobile-tab-bar-height, 4rem) + env(safe-area-inset-bottom, 0px) + 0.75rem);
+		bottom: calc(var(--mobile-tab-bar-height, 4rem) + env(safe-area-inset-bottom, 0px) + 1.5rem);
 	}
 
 	@media (min-width: 768px) {

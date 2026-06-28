@@ -33,6 +33,7 @@
 	let popup = $state(false);
 	let popupTimer = 0;
 	const blocked = $derived(reason !== null);
+	let dimmed = $state(false);
 	let convoOpen = $state(false);
 	let convo = $state<ChatMsg[]>([]);
 	let history: ApiMsg[] = [];
@@ -88,6 +89,12 @@
 	}
 
 	onMount(() => {
+		const onDim = (event: Event) => {
+			const detail = (event as CustomEvent<{ dimmed?: boolean }>).detail;
+			dimmed = Boolean(detail?.dimmed);
+		};
+		window.addEventListener('graph-voice-button-dim', onDim as EventListener);
+
 		// Let the routed page render and restore graph focus before showing the
 		// voice backend validation state.
 		const timer = window.setTimeout(async () => {
@@ -101,7 +108,10 @@
 				reason = 'error';
 			}
 		}, 900);
-		return () => window.clearTimeout(timer);
+		return () => {
+			window.removeEventListener('graph-voice-button-dim', onDim as EventListener);
+			window.clearTimeout(timer);
+		};
 	});
 
 	function stopCapture() {
@@ -372,12 +382,14 @@
 	onDestroy(() => {
 		clearTimeout(doneTimer);
 		stopCapture();
+		dimmed = false;
 	});
 </script>
 
 <!-- Global FAB: visible when no overlay is open -->
 {#if !overlayOpen}
 	<div
+		data-testid="voice-fab"
 		class="fixed bottom-[70px] right-4 z-40 md:bottom-6 md:right-6"
 		transition:scale={{ duration: 200, start: 0.8 }}
 	>
@@ -409,7 +421,9 @@
 				? 'cursor-not-allowed border border-line bg-card text-mut opacity-50'
 				: error
 					? 'border border-warn bg-card text-warn'
-					: 'bg-accent text-white hover:opacity-90 active:scale-95'}"
+					: dimmed
+						? 'bg-accent/38 text-white backdrop-blur-[1px] hover:bg-accent/48 active:scale-95'
+						: 'bg-accent text-white hover:opacity-90 active:scale-95'}"
 		>
 			<svg
 				width="26"

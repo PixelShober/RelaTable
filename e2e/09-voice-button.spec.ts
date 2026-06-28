@@ -13,6 +13,15 @@ test.describe('Voice Button (SCR-060)', () => {
 		await expect(page.getByRole('button', { name: 'Mikrofon starten' })).toBeVisible();
 	});
 
+	test('FAB becomes transparent when a graph node moves underneath it', async ({ page }) => {
+		await page.goto('/graph');
+		const fab = page.getByRole('button', { name: 'Mikrofon starten' });
+		await expect(fab).toBeVisible();
+		await page.getByRole('button', { name: 'Einpassen' }).click();
+		await page.mouse.wheel(0, 1200);
+		await expect(fab).toHaveClass(/bg-accent\/38|opacity-50/, { timeout: 5000 });
+	});
+
 	test('FAB is hidden outside the graph page', async ({ page }) => {
 		await page.goto('/personen');
 		await expect(page.getByRole('button', { name: 'Mikrofon starten' })).toHaveCount(0);

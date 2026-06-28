@@ -20,6 +20,9 @@ test.describe('Karte (SCR-060/061)', () => {
 		await page.getByLabel('Nur Personen und Verbindungen').check();
 		await expect(page.getByText('Verbindungen', { exact: true })).toBeVisible();
 		await expect(page.getByText('Freundschaft', { exact: true })).toBeVisible();
+		await expect
+			.poll(async () => await page.locator('.leaflet-marker-icon').count())
+			.toBeGreaterThan(0);
 	});
 
 	test('mobile legend stays above the bottom navigation', async ({ page }) => {
@@ -34,6 +37,6 @@ test.describe('Karte (SCR-060/061)', () => {
 		const navBox = await bottomNav.boundingBox();
 		expect(legendBox).not.toBeNull();
 		expect(navBox).not.toBeNull();
-		expect(legendBox!.y + legendBox!.height).toBeLessThanOrEqual(navBox!.y);
+		expect(legendBox!.y + legendBox!.height).toBeLessThanOrEqual(navBox!.y - 8);
 	});
 });

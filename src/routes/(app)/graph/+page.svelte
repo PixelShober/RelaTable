@@ -231,6 +231,38 @@
 		legendDimmed = covered;
 	}
 
+	function setVoiceButtonDimmed(dimmed: boolean) {
+		if (typeof window === 'undefined') return;
+		window.dispatchEvent(new CustomEvent('graph-voice-button-dim', { detail: { dimmed } }));
+	}
+
+	function updateVoiceButtonTransparency() {
+		if (!cy) {
+			setVoiceButtonDimmed(false);
+			return;
+		}
+		const fab = document.querySelector('[data-testid="voice-fab"]');
+		if (!(fab instanceof HTMLElement)) {
+			setVoiceButtonDimmed(false);
+			return;
+		}
+		const rect = fab.getBoundingClientRect();
+		const containerRect = container?.getBoundingClientRect();
+		if (!containerRect) {
+			setVoiceButtonDimmed(false);
+			return;
+		}
+		let covered = false;
+		cy.nodes(':visible').forEach((node: any) => {
+			if (covered) return;
+			const point = node.renderedPosition();
+			const x = containerRect.left + point.x;
+			const y = containerRect.top + point.y;
+			if (isPointInsideRect(x, y, rect)) covered = true;
+		});
+		setVoiceButtonDimmed(covered);
+	}
+
 	async function initCy() {
 		const cytoscape = (await import('cytoscape')).default;
 		darkLabels = document.documentElement.classList.contains('dark');
@@ -309,6 +341,7 @@
 		cy.on('pan zoom resize', () => {
 			updateFloatingPositions();
 			updateLegendTransparency();
+			updateVoiceButtonTransparency();
 		});
 
 		// On first load with a focus, settle positions synchronously so applyFocus reads final
@@ -323,6 +356,7 @@
 		graphSig = graphSignature(); // baseline: don't let the rebuild effect fire on first pass
 		graphReady = true;
 		updateLegendTransparency();
+		updateVoiceButtonTransparency();
 	}
 
 	// Cheap content signature: focus navigation (?focus=…) re-runs the server load → `data.graph`
@@ -499,7 +533,10 @@
 		panel;
 		menu;
 		if (!cy) return;
-		queueMicrotask(updateLegendTransparency);
+		queueMicrotask(() => {
+			updateLegendTransparency();
+			updateVoiceButtonTransparency();
+		});
 	});
 
 	onMount(() => {
@@ -524,6 +561,7 @@
 		return () => {
 			window.removeEventListener('keydown', onKey);
 			if (longPressTimer) clearTimeout(longPressTimer);
+			setVoiceButtonDimmed(false);
 			cy?.destroy();
 		};
 	});
