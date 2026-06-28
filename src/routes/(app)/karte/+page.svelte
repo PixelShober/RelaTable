@@ -261,7 +261,7 @@
 		<div
 			bind:this={legendEl}
 			data-testid="map-legend-overlay"
-			class={`legend-overlay absolute right-2.5 z-[500] w-[220px] max-w-[calc(100%-1.25rem)] rounded-lg border border-line bg-card/95 p-2.5 text-xs shadow transition-opacity duration-200 ${legendDimmed ? 'opacity-20' : 'opacity-100'}`}
+			class={`legend-overlay absolute right-2.5 z-[500] w-[220px] max-w-[calc(100%-1.25rem)] overflow-y-auto rounded-lg border border-line bg-card/95 p-2.5 text-xs shadow transition-opacity duration-200 ${legendDimmed ? 'opacity-20' : 'opacity-100'}`}
 		>
 			{#if showConnectionsOnly}
 				<b>Verbindungen</b>
@@ -306,12 +306,20 @@
 
 <style>
 	.legend-overlay {
-		bottom: calc(var(--mobile-tab-bar-height, 4rem) + env(safe-area-inset-bottom, 0px) + 1.5rem);
+		top: calc(3.5rem + env(safe-area-inset-top, 0px) + 0.75rem);
+		max-height: calc(
+			100dvh - 3.5rem - env(safe-area-inset-top, 0px) - var(--mobile-tab-bar-height, 4rem) -
+				env(safe-area-inset-bottom, 0px) - 2rem
+		);
+		overscroll-behavior: contain;
+		touch-action: pan-y;
 	}
 
 	@media (min-width: 768px) {
 		.legend-overlay {
+			top: auto;
 			bottom: 0.625rem;
+			max-height: min(50vh, 28rem);
 		}
 	}
 </style>

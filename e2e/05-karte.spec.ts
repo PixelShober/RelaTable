@@ -38,5 +38,14 @@ test.describe('Karte (SCR-060/061)', () => {
 		expect(legendBox).not.toBeNull();
 		expect(navBox).not.toBeNull();
 		expect(legendBox!.y + legendBox!.height).toBeLessThanOrEqual(navBox!.y - 8);
+
+		const centerX = legendBox!.x + legendBox!.width / 2;
+		const centerY = legendBox!.y + Math.min(legendBox!.height / 2, 40);
+		await page.mouse.move(centerX, centerY);
+		await page.mouse.wheel(0, 1200);
+
+		const legendBoxAfter = await legend.boundingBox();
+		expect(legendBoxAfter).not.toBeNull();
+		expect(legendBoxAfter!.y + legendBoxAfter!.height).toBeLessThanOrEqual(navBox!.y - 8);
 	});
 });

@@ -390,7 +390,7 @@
 {#if !overlayOpen}
 	<div
 		data-testid="voice-fab"
-		class="fixed bottom-[70px] right-4 z-40 md:bottom-6 md:right-6"
+		class="fixed bottom-[70px] right-4 z-40 transition-opacity duration-200 md:bottom-6 md:right-6 {dimmed && !blocked ? 'opacity-35' : 'opacity-100'}"
 		transition:scale={{ duration: 200, start: 0.8 }}
 	>
 		{#if popup && reason}
@@ -422,7 +422,7 @@
 				: error
 					? 'border border-warn bg-card text-warn'
 					: dimmed
-						? 'bg-accent/38 text-white backdrop-blur-[1px] hover:bg-accent/48 active:scale-95'
+						? 'bg-accent text-white active:scale-95'
 						: 'bg-accent text-white hover:opacity-90 active:scale-95'}"
 		>
 			<svg

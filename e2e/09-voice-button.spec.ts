@@ -16,10 +16,11 @@ test.describe('Voice Button (SCR-060)', () => {
 	test('FAB becomes transparent when a graph node moves underneath it', async ({ page }) => {
 		await page.goto('/graph');
 		const fab = page.getByRole('button', { name: 'Mikrofon starten' });
+		const fabShell = page.getByTestId('voice-fab');
 		await expect(fab).toBeVisible();
 		await page.getByRole('button', { name: 'Einpassen' }).click();
 		await page.mouse.wheel(0, 1200);
-		await expect(fab).toHaveClass(/bg-accent\/38|opacity-50/, { timeout: 5000 });
+		await expect(fabShell).toHaveClass(/opacity-35|opacity-50/, { timeout: 5000 });
 	});
 
 	test('FAB is hidden outside the graph page', async ({ page }) => {
