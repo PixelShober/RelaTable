@@ -261,14 +261,14 @@
 		<div
 			bind:this={legendEl}
 			data-testid="map-legend-overlay"
-			class={`legend-overlay absolute right-2.5 z-[500] w-[220px] max-w-[calc(100%-1.25rem)] overflow-y-auto rounded-lg border border-line bg-card/95 p-2.5 text-xs shadow transition-opacity duration-200 ${legendDimmed ? 'opacity-20' : 'opacity-100'}`}
+			class={`legend-overlay absolute left-2.5 z-[500] w-[180px] max-w-[calc(100%-1.25rem)] overflow-y-auto rounded-lg border border-line bg-card/95 p-2 text-[11px] shadow-sm transition-opacity duration-200 ${legendDimmed ? 'opacity-20' : 'opacity-100'}`}
 		>
 			{#if showConnectionsOnly}
-				<b>Verbindungen</b>
+				<b>Legende</b>
 				<div class="mt-1 space-y-1">
 					{#each data.connectionLegend as item}
 						<div class="flex items-center gap-2">
-							<span class="inline-block h-0.5 w-5 rounded-full" style={`background:${item.color}`}></span>
+							<span class="inline-block h-0.5 w-4 rounded-full" style={`background:${item.color}`}></span>
 							<span>{item.label}</span>
 						</div>
 					{/each}
@@ -317,9 +317,8 @@
 
 	@media (min-width: 768px) {
 		.legend-overlay {
-			top: auto;
-			bottom: 0.625rem;
-			max-height: min(50vh, 28rem);
+			top: 0.625rem;
+			max-height: min(45vh, 24rem);
 		}
 	}
 </style>
