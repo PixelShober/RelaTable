@@ -14,7 +14,6 @@
 	let layoutName = $state('circle');
 	let panel = $state<null | { id: number; name: string; city: string | null; degree: number; x: number; y: number }>(null);
 	let menu = $state<null | { id: number; name: string; x: number; y: number }>(null);
-	let darkLabels = false;
 	let legendDimmed = $state(false);
 
 	let searchOpen = $state(false);
@@ -151,27 +150,32 @@
 		return [...nodes, ...edges];
 	}
 
-	function styles(cytoscape: any): any[] {
-		const label = darkLabels ? '#ddd' : '#333';
+	function styles(_cytoscape: any): any[] {
 		return [
+			{ selector: 'core', style: { 'background-color': 'transparent' } },
 			{
 				selector: 'node',
 				style: {
 					width: 'data(degree)',
 					height: 'data(degree)',
-					'background-color': '#ffffff',
+					'background-color': '#0a1410',
 					'background-image': 'data(image)',
 					'background-fit': 'cover',
 					'background-image-crossorigin': 'anonymous',
-					'border-width': 2,
-					'border-color': '#888',
+					'border-width': 1.5,
+					'border-color': '#8aaa50',
 					label: 'data(name)',
-					'font-size': 10,
-					color: label,
+					'font-size': 9,
+					color: '#7a9880',
 					'text-valign': 'bottom',
 					'text-margin-y': 3,
 					'text-wrap': 'wrap',
 					'text-max-width': '90px',
+					'shadow-blur': 10,
+					'shadow-color': '#7aa040',
+					'shadow-opacity': 0.4,
+					'shadow-offset-x': 0,
+					'shadow-offset-y': 0,
 					'transition-property': 'opacity, border-width, border-color, overlay-opacity',
 					'transition-duration': '0.35s',
 					'transition-timing-function': 'ease-in-out'
@@ -179,27 +183,27 @@
 			},
 			// Size from degree (mapped at element build via degree number); ensure a floor.
 			{ selector: 'node[degree < 6]', style: { width: 26, height: 26 } },
-			{ selector: 'node[?isolated]', style: { 'border-style': 'dashed', 'border-color': '#bbb', 'background-color': '#fafafa' } },
+			{ selector: 'node[?isolated]', style: { 'border-style': 'dashed', 'border-color': '#2a3d2a', 'background-color': '#080e08' } },
 			{ selector: 'node.faded', style: { opacity: 0.12 } },
 			// Spotlight: smooth fade, keeps node in place. Non-neighbours in focus
 			// mode must not show Cytoscape's tap overlay or receive events.
-			{ selector: 'node.dim', style: { opacity: 0.1, events: 'no', 'overlay-opacity': 0 } },
+			{ selector: 'node.dim', style: { opacity: 0.06, events: 'no', 'overlay-opacity': 0 } },
 			{ selector: 'node.hidden', style: { display: 'none' } },
-			{ selector: 'node.search-hit', style: { 'border-color': '#8fa0bf', 'border-width': 3, 'z-index': 30 } },
+			{ selector: 'node.search-hit', style: { 'border-color': '#c8d850', 'border-width': 3, 'z-index': 30, 'shadow-color': '#c0d040', 'shadow-opacity': 0.75 } },
 			{
 				selector: 'edge',
 				style: {
-					width: 3,
+					width: 1,
 					'line-color': 'data(color)',
 					'curve-style': 'bezier',
-					opacity: 0.85,
+					opacity: 0.5,
 					'transition-property': 'opacity, width',
 					'transition-duration': '0.35s'
 				}
 			},
 			// Inactive edges in focus mode should be visual context only.
-			{ selector: 'edge.dim', style: { opacity: 0.06, events: 'no', 'overlay-opacity': 0 } },
-			{ selector: 'edge.focus-edge', style: { width: 5, opacity: 1 } },
+			{ selector: 'edge.dim', style: { opacity: 0.04, events: 'no', 'overlay-opacity': 0 } },
+			{ selector: 'edge.focus-edge', style: { width: 2, opacity: 0.85 } },
 			{ selector: 'edge.hidden', style: { display: 'none' } }
 		];
 	}
@@ -265,7 +269,6 @@
 
 	async function initCy() {
 		const cytoscape = (await import('cytoscape')).default;
-		darkLabels = document.documentElement.classList.contains('dark');
 		// Pre-size nodes (degree value becomes the px size).
 		const els = buildElements().map((el: any) =>
 			el.data.source ? el : { data: { ...el.data, degree: nodeSize(el.data.degree) } }
@@ -430,12 +433,12 @@
 		others.addClass('dim');
 		neighborhood.edges().addClass('focus-edge');
 
-		// Silver ring lights up immediately (on the click), holds 400ms, fades in 200ms → no lasting ring.
+		// Warm gold ring lights up immediately (on the click), holds 400ms, fades in 200ms → no lasting ring.
 		node
-			.animate({ style: { 'border-color': '#dfe4ee', 'border-width': 2 }, duration: 120, easing: 'ease-out' })
+			.animate({ style: { 'border-color': '#d4c870', 'border-width': 2.5 }, duration: 120, easing: 'ease-out' })
 			.delay(400)
 			.animate({
-				style: { 'border-color': '#888', 'border-width': 2 },
+				style: { 'border-color': '#8aaa50', 'border-width': 1.5 },
 				duration: 200,
 				easing: 'ease-in',
 				complete: () => node.removeStyle('border-color border-width')
@@ -569,7 +572,7 @@
 
 <svelte:head><title>Graph – RelaTable</title></svelte:head>
 
-<div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+<div class="graph-scene flex min-h-0 flex-1 flex-col overflow-hidden">
 	{#if focusId && focusName}
 		<Topbar title={`Fokus: ${focusName}`}>
 			<button class="btn btn-sm" onclick={clearFocus}>‹ Zurück</button>
@@ -588,13 +591,14 @@
 	{/if}
 
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="relative min-h-0 flex-1 overflow-hidden" oncontextmenu={(e) => e.preventDefault()}>
+	<div class="graph-canvas-wrap relative min-h-0 flex-1 overflow-hidden" oncontextmenu={(e) => e.preventDefault()}>
+	<div class="graph-bg-text" aria-hidden="true">GRAPH</div>
 	<div bind:this={container} class="absolute inset-0" style="touch-action: none"></div>
 
 	<!-- Ctrl+F search: slides in top-centre, pulls name matches to the middle live -->
 	{#if searchOpen}
 		<div class="absolute left-1/2 top-3 z-30 -translate-x-1/2" transition:fly={{ y: -30, duration: 220 }}>
-			<div class="flex items-center gap-2 rounded-full border border-line bg-card px-3 py-1.5 shadow-lg">
+			<div class="flex items-center gap-2 rounded-full border border-line bg-card px-3 py-1.5 shadow-lg backdrop-blur-md">
 				<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-mut">
 					<circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
 				</svg>
@@ -623,7 +627,7 @@
 	<div
 		bind:this={legendEl}
 		data-testid="graph-legend-overlay"
-		class={`absolute right-2.5 top-2.5 rounded-lg border border-line bg-card p-2 text-[11px] shadow-sm transition-opacity duration-200 ${legendDimmed ? 'opacity-20' : 'opacity-100'}`}
+		class={`absolute right-2.5 top-2.5 rounded-lg border border-line bg-card p-2 text-[11px] shadow-sm backdrop-blur-md transition-opacity duration-200 ${legendDimmed ? 'opacity-20' : 'opacity-100'}`}
 	>
 		<b>Legende</b>
 		{#each data.legend as l}
@@ -634,15 +638,15 @@
 	</div>
 
 	<!-- Zoom controls -->
-	<div class="absolute bottom-2.5 left-2.5 flex flex-col overflow-hidden rounded-md border border-line bg-card">
-		<button class="h-7 w-8 border-b border-line" onclick={() => zoomBy(1.25)} aria-label="Vergrößern">+</button>
-		<button class="h-7 w-8 border-b border-line" onclick={() => zoomBy(0.8)} aria-label="Verkleinern">−</button>
-		<button class="h-7 w-8" onclick={fit} aria-label="Einpassen">⤢</button>
+	<div class="absolute bottom-2.5 left-2.5 flex flex-col overflow-hidden rounded-md border border-line bg-card backdrop-blur-md">
+		<button class="h-7 w-8 border-b border-line text-ink/70 hover:text-ink" onclick={() => zoomBy(1.25)} aria-label="Vergrößern">+</button>
+		<button class="h-7 w-8 border-b border-line text-ink/70 hover:text-ink" onclick={() => zoomBy(0.8)} aria-label="Verkleinern">−</button>
+		<button class="h-7 w-8 text-ink/70 hover:text-ink" onclick={fit} aria-label="Einpassen">⤢</button>
 	</div>
 
 	<!-- Node panel (single click) -->
 	{#if panel}
-		<div class="absolute z-20 w-52 rounded-lg border border-line bg-card p-2.5 shadow-lg"
+		<div class="absolute z-20 w-52 rounded-lg border border-line bg-card p-2.5 shadow-lg backdrop-blur-md"
 			style="left:{Math.min(panel.x + 12, (container?.clientWidth ?? 300) - 220)}px; top:{Math.min(panel.y + 12, (container?.clientHeight ?? 300) - 110)}px">
 			<div class="flex items-center justify-between">
 				<div>
@@ -660,7 +664,7 @@
 
 	<!-- Right-click / long-press context menu -->
 	{#if menu}
-		<div class="absolute z-20 w-44 overflow-hidden rounded-lg border border-line bg-card text-sm shadow-lg"
+		<div class="absolute z-20 w-44 overflow-hidden rounded-lg border border-line bg-card text-sm shadow-lg backdrop-blur-md"
 			style="left:{clamp(menu.x - 88, 8, (container?.clientWidth ?? 300) - 184)}px; top:{menu.y}px">
 			<a class="block border-b border-line px-3 py-2 hover:bg-bg" href={`/personen/${menu!.id}/bearbeiten?return=graph`}>Profil bearbeiten</a>
 			<a class="block border-b border-line px-3 py-2 hover:bg-bg" href={`/personen/${menu!.id}/bearbeiten?pick=1&return=graph`}>Bild ändern</a>
@@ -717,3 +721,73 @@
 
 	</div>
 </div>
+
+<style>
+	/* ── Cinematic graph scene ───────────────────────────────────────────────────
+	   CSS custom properties cascade to all children incl. Topbar, overlays, btns.
+	   Scoped to .graph-scene so the rest of the app is untouched.
+	──────────────────────────────────────────────────────────────────────────── */
+	.graph-scene {
+		--c-ink: 172 188 162;
+		--c-mut: 78 95 82;
+		--c-line: 32 48 36;
+		--c-bg: 5 8 6;
+		--c-card: 10 16 12;
+		--c-rail: 8 13 10;
+		--c-accent: 120 158 72;
+	}
+
+	/* Near-black star-field canvas behind Cytoscape */
+	.graph-canvas-wrap {
+		background-color: #050908;
+		/* Four layers of sparse "stars" at prime-number tile sizes for even distribution */
+		background-image:
+			radial-gradient(circle, rgba(242, 248, 228, 0.92) 0.7px, transparent 0),
+			radial-gradient(circle, rgba(196, 228, 166, 0.65) 0.7px, transparent 0),
+			radial-gradient(circle, rgba(176, 212, 148, 0.45) 1px, transparent 0),
+			radial-gradient(circle, rgba(222, 242, 202, 0.32) 0.5px, transparent 0);
+		background-size: 211px 197px, 347px 283px, 503px 431px, 157px 173px;
+		background-position: 37px 71px, 127px 43px, 89px 156px, 63px 29px;
+	}
+
+	/* Subtle large background word — depth layer, not a headline */
+	.graph-bg-text {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		pointer-events: none;
+		z-index: 0;
+		overflow: hidden;
+		color: rgba(98, 152, 68, 0.038);
+		font-size: min(22vw, 25vh);
+		font-weight: 900;
+		letter-spacing: -0.03em;
+		user-select: none;
+		white-space: nowrap;
+		font-family: system-ui, sans-serif;
+	}
+
+	/* Glass panels: semi-transparent so backdrop-blur shows the star field through */
+	:global(.graph-scene .backdrop-blur-md) {
+		background-color: rgba(10, 16, 12, 0.82) !important;
+	}
+
+	/* Topbar in the graph scene: lighter weight, techno spacing */
+	:global(.graph-scene header) {
+		background-color: rgba(8, 13, 10, 0.92);
+		backdrop-filter: blur(6px);
+		-webkit-backdrop-filter: blur(6px);
+	}
+	:global(.graph-scene header b) {
+		font-weight: 500;
+		letter-spacing: 0.06em;
+		font-size: 12px;
+		text-transform: uppercase;
+		opacity: 0.85;
+	}
+	:global(.graph-scene header span.text-mut) {
+		letter-spacing: 0.03em;
+	}
+</style>
