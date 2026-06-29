@@ -4,12 +4,17 @@
 	import { fly } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { browser } from '$app/environment';
 	import Topbar from '$lib/components/Topbar.svelte';
 	let { data, form } = $props();
 
 	let container: HTMLDivElement;
 	let legendEl = $state<HTMLDivElement | undefined>();
 	let cy: any = null;
+	let fgInstance: any = null;
+	let engine = $state<'cytoscape' | 'forcegraph'>(
+		browser ? ((localStorage.getItem('graph.engine') as 'forcegraph' | null) ?? 'cytoscape') : 'cytoscape'
+	);
 	const basePos = new Map<string, { x: number; y: number }>(); // layout positions, restored before each focus
 	let layoutName = $state('circle');
 	let panel = $state<null | { id: number; name: string; city: string | null; degree: number; x: number; y: number }>(null);
@@ -375,13 +380,18 @@
 	}
 
 	// Nach einem Schreibvorgang über die Erzählfunktion ruft VoiceButton invalidateAll();
-	// das aktualisiert `data` → hier die Cytoscape-Elemente neu aufbauen (Graph "live").
+	// das aktualisiert `data` → hier die Elemente neu aufbauen (Graph "live").
 	let graphReady = false;
 	let graphSig = '';
 	$effect(() => {
 		const sig = graphSignature(); // tracks data.graph
-		if (!cy || !graphReady || sig === graphSig) return;
+		if (!graphReady || sig === graphSig) return;
 		graphSig = sig;
+		if (engine === 'forcegraph' && fgInstance) {
+			fgInstance.graphData(buildFgData());
+			return;
+		}
+		if (!cy) return;
 		const els = buildElements().map((el: any) =>
 			el.data.source ? el : { data: { ...el.data, degree: nodeSize(el.data.degree) } }
 		);
@@ -396,6 +406,82 @@
 		}
 		applyFocus(focusId);
 	});
+
+	function buildFgData() {
+		return {
+			nodes: data.graph.nodes.map((n) => ({ id: n.id, name: n.name, val: Math.max(1, n.degree) })),
+			links: data.graph.edges.map((e) => ({ source: e.source, target: e.target, color: e.color }))
+		};
+	}
+
+	async function initForceGraph() {
+		const ForceGraph = (await import('force-graph')).default;
+		fgInstance = ForceGraph()(container)
+			.width(container.clientWidth)
+			.height(container.clientHeight)
+			.backgroundColor('transparent')
+			.graphData(buildFgData())
+			.nodeLabel(() => '')
+			.nodeCanvasObject((node: any, ctx: CanvasRenderingContext2D, gs: number) => {
+				const r = Math.max(5, Math.min(22, 5 + (node.val || 1) * 1.5));
+				ctx.shadowBlur = 20;
+				ctx.shadowColor = '#c8a840';
+				ctx.beginPath();
+				ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
+				ctx.fillStyle = '#d4b040';
+				ctx.fill();
+				ctx.shadowBlur = 0;
+				ctx.strokeStyle = '#f0d06088';
+				ctx.lineWidth = 0.8;
+				ctx.stroke();
+				const fs = Math.max(6, 9 / gs);
+				ctx.font = `${fs}px system-ui,sans-serif`;
+				ctx.fillStyle = 'rgba(200,184,136,0.88)';
+				ctx.textAlign = 'center';
+				ctx.textBaseline = 'top';
+				ctx.fillText(String(node.name), node.x, node.y + r + 2 / gs);
+			})
+			.nodePointerAreaPaint((node: any, color: string, ctx: CanvasRenderingContext2D) => {
+				const r = Math.max(5, Math.min(22, 5 + (node.val || 1) * 1.5));
+				ctx.beginPath();
+				ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
+				ctx.fillStyle = color;
+				ctx.fill();
+			})
+			.linkColor((l: any) => l.color || 'rgba(255,255,255,0.18)')
+			.linkWidth(0.8)
+			.onNodeClick((node: any, event: MouseEvent) => {
+				const meta = data.graph.nodes.find((n) => n.id === node.id)!;
+				panel = { id: node.id, name: meta.name, city: meta.city, degree: meta.degree, x: event.offsetX, y: event.offsetY };
+				menu = null;
+			})
+			.onNodeRightClick((node: any, event: MouseEvent) => {
+				event.preventDefault();
+				const meta = data.graph.nodes.find((n) => n.id === node.id)!;
+				menu = { id: node.id, name: meta.name, x: event.offsetX, y: event.offsetY };
+				panel = null;
+			})
+			.onBackgroundClick(() => { panel = null; menu = null; mergeDialog = null; });
+		graphReady = true;
+		graphSig = graphSignature();
+	}
+
+	function destroyEngines() {
+		cy?.destroy(); cy = null;
+		try { fgInstance?._destructor?.(); } catch { /* ignore */ }
+		fgInstance = null;
+		if (container) container.innerHTML = '';
+		graphReady = false;
+	}
+
+	async function setEngine(e: 'cytoscape' | 'forcegraph') {
+		if (e === engine) return;
+		engine = e;
+		localStorage.setItem('graph.engine', e);
+		destroyEngines();
+		if (e === 'cytoscape') await initCy();
+		else await initForceGraph();
+	}
 
 	function saveBase() {
 		basePos.clear();
@@ -550,7 +636,8 @@
 			if (focusId == null && saved && data.graph.nodes.some((n) => n.id === Number(saved))) {
 				await goto(`/graph?focus=${saved}`, { replaceState: true, noScroll: true, keepFocus: true });
 			}
-			await initCy();
+			if (engine === 'forcegraph') await initForceGraph();
+			else await initCy();
 		})();
 		const onKey = (e: KeyboardEvent) => {
 			if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
@@ -566,6 +653,7 @@
 			if (longPressTimer) clearTimeout(longPressTimer);
 			setVoiceButtonDimmed(false);
 			cy?.destroy();
+			try { fgInstance?._destructor?.(); } catch { /* ignore */ }
 		};
 	});
 </script>
@@ -579,14 +667,28 @@
 		</Topbar>
 	{:else}
 		<Topbar title="Graph" subtitle={`${data.graph.nodes.length} Personen`}>
-			<label class="flex items-center gap-1 text-xs text-mut">
-				Layout
-				<select class="inp btn-sm w-auto" bind:value={layoutName}>
-					<option value="circle">Kreis</option>
-					<option value="concentric">Konzentrisch</option>
-					<option value="grid">Raster</option>
-				</select>
-			</label>
+			<div class="flex items-center gap-3">
+				{#if engine === 'cytoscape'}
+					<label class="flex items-center gap-1 text-xs text-mut">
+						Layout
+						<select class="inp btn-sm w-auto" bind:value={layoutName}>
+							<option value="circle">Kreis</option>
+							<option value="concentric">Konzentrisch</option>
+							<option value="grid">Raster</option>
+						</select>
+					</label>
+				{/if}
+				<div class="flex overflow-hidden rounded border border-line text-xs">
+					<button
+						class="px-2 py-1 transition-colors {engine === 'cytoscape' ? 'bg-accent/20 text-ink' : 'text-mut hover:text-ink'}"
+						onclick={() => setEngine('cytoscape')}
+					>Cyto</button>
+					<button
+						class="border-l border-line px-2 py-1 transition-colors {engine === 'forcegraph' ? 'bg-accent/20 text-ink' : 'text-mut hover:text-ink'}"
+						onclick={() => setEngine('forcegraph')}
+					>Force</button>
+				</div>
+			</div>
 		</Topbar>
 	{/if}
 
