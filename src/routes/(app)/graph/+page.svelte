@@ -409,13 +409,32 @@
 
 	function buildFgData() {
 		return {
-			nodes: data.graph.nodes.map((n) => ({ id: n.id, name: n.name, val: Math.max(1, n.degree) })),
+			nodes: data.graph.nodes.map((n) => ({ id: n.id, name: n.name, val: Math.max(1, n.degree), img: n.image })),
 			links: data.graph.edges.map((e) => ({ source: e.source, target: e.target, color: e.color }))
 		};
 	}
 
+	// Preload images so canvas drawing is synchronous (no flicker on first render).
+	function preloadFgImages(): Map<number, HTMLImageElement> {
+		const cache = new Map<number, HTMLImageElement>();
+		for (const n of data.graph.nodes) {
+			if (!n.image) continue;
+			const img = new Image();
+			img.crossOrigin = 'anonymous';
+			img.src = n.image;
+			cache.set(n.id, img);
+		}
+		return cache;
+	}
+
 	async function initForceGraph() {
 		const ForceGraph = (await import('force-graph')).default;
+		const imgCache = preloadFgImages();
+
+		function nodeRadius(val: number) {
+			return Math.max(8, Math.min(26, 8 + val * 1.4));
+		}
+
 		fgInstance = ForceGraph()(container)
 			.width(container.clientWidth)
 			.height(container.clientHeight)
@@ -423,26 +442,43 @@
 			.graphData(buildFgData())
 			.nodeLabel(() => '')
 			.nodeCanvasObject((node: any, ctx: CanvasRenderingContext2D, gs: number) => {
-				const r = Math.max(5, Math.min(22, 5 + (node.val || 1) * 1.5));
-				ctx.shadowBlur = 20;
-				ctx.shadowColor = '#c8a840';
+				const r = nodeRadius(node.val || 1);
+				const x: number = node.x, y: number = node.y;
+
+				// Glow ring
+				ctx.shadowBlur = 14;
+				ctx.shadowColor = '#7aa040';
 				ctx.beginPath();
-				ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
-				ctx.fillStyle = '#d4b040';
-				ctx.fill();
-				ctx.shadowBlur = 0;
-				ctx.strokeStyle = '#f0d06088';
-				ctx.lineWidth = 0.8;
+				ctx.arc(x, y, r + 1.5, 0, 2 * Math.PI);
+				ctx.strokeStyle = '#8aaa50';
+				ctx.lineWidth = 1.5;
 				ctx.stroke();
+				ctx.shadowBlur = 0;
+
+				// Photo clipped to circle (fallback: dark fill)
+				ctx.save();
+				ctx.beginPath();
+				ctx.arc(x, y, r, 0, 2 * Math.PI);
+				ctx.clip();
+				const img = imgCache.get(node.id);
+				if (img && img.complete && img.naturalWidth > 0) {
+					ctx.drawImage(img, x - r, y - r, r * 2, r * 2);
+				} else {
+					ctx.fillStyle = '#0a1410';
+					ctx.fill();
+				}
+				ctx.restore();
+
+				// Name label
 				const fs = Math.max(6, 9 / gs);
 				ctx.font = `${fs}px system-ui,sans-serif`;
-				ctx.fillStyle = 'rgba(200,184,136,0.88)';
+				ctx.fillStyle = 'rgba(172,188,162,0.9)';
 				ctx.textAlign = 'center';
 				ctx.textBaseline = 'top';
-				ctx.fillText(String(node.name), node.x, node.y + r + 2 / gs);
+				ctx.fillText(String(node.name), x, y + r + 2 / gs);
 			})
 			.nodePointerAreaPaint((node: any, color: string, ctx: CanvasRenderingContext2D) => {
-				const r = Math.max(5, Math.min(22, 5 + (node.val || 1) * 1.5));
+				const r = nodeRadius(node.val || 1);
 				ctx.beginPath();
 				ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
 				ctx.fillStyle = color;
