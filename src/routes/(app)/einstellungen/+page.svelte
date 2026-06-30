@@ -238,6 +238,17 @@
 			</div>
 		</section>
 
+		<!-- Instagram-Import -->
+		<section>
+			<b class="text-[13px]">Instagram-Import</b>
+			<div class="card mt-1.5 flex items-center justify-between gap-3 p-3 text-[13px]">
+				<p class="text-[11px] text-mut">
+					Followings laden, an-/abwählen, auf vorhandene Personen zuordnen — Profilbild &amp; Instagram-Link werden befüllt.
+				</p>
+				<a href="/import/instagram" class="btn btn-sm flex-none">Öffnen</a>
+			</div>
+		</section>
+
 		<!-- JSON-Import (Erzählung → JSON) -->
 		<section>
 			<b class="text-[13px]">JSON-Import</b>

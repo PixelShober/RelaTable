@@ -34,6 +34,26 @@ export async function saveProfileImage(file: File): Promise<UploadResult> {
 	return { ok: true, fileName: name };
 }
 
+/** Download an HTTPS image into uploads/, return the stored filename (or null on any failure).
+ *  Used by the Instagram import — IG CDN URLs expire and block hotlinking, so we persist the bytes. */
+export async function saveImageFromUrl(url: string): Promise<string | null> {
+	if (!/^https:\/\//i.test(url)) return null;
+	try {
+		const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+		if (!res.ok) return null;
+		const ext = ALLOWED.get((res.headers.get('content-type') || '').split(';')[0].trim());
+		if (!ext) return null;
+		const buf = Buffer.from(await res.arrayBuffer());
+		if (buf.byteLength === 0 || buf.byteLength > MAX_BYTES) return null;
+		await mkdir(UPLOAD_DIR, { recursive: true });
+		const name = `${Date.now()}-${randomBytes(6).toString('hex')}${ext}`;
+		await writeFile(join(UPLOAD_DIR, name), buf);
+		return name;
+	} catch {
+		return null;
+	}
+}
+
 export function safeUploadName(name: string): string | null {
 	// Block traversal; uploads are flat files with known extensions.
 	if (!/^[\w.-]+$/.test(name)) return null;
