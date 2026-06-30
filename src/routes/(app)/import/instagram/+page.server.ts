@@ -2,7 +2,13 @@ import { fail } from '@sveltejs/kit';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { db } from '$lib/server/db';
-import { fetchFollowings, parseScriptOutput, sessionFilePath, isValidIgUsername } from '$lib/server/igImport';
+import {
+	fetchFollowings,
+	parseScriptOutput,
+	sessionFilePath,
+	isValidIgUsername,
+	instaloaderLogin
+} from '$lib/server/igImport';
 import { saveImageFromUrl } from '$lib/server/uploads';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -39,6 +45,19 @@ export const actions: Actions = {
 		const res = await fetchFollowings(igUsername);
 		if (!res.ok) return fail(400, { fetchError: res.error });
 		return { followees: res.followees, igUsername };
+	},
+
+	// VPS-Pfad: direkt in der Web-UI einloggen (Passwort + TOTP-Code), Session landet auf /data.
+	login: async ({ request }) => {
+		const data = await request.formData();
+		const username = String(data.get('igUsername') ?? '').trim().toLowerCase().replace(/^@/, '');
+		const password = String(data.get('password') ?? '');
+		const code = String(data.get('code') ?? '').trim();
+		if (!isValidIgUsername(username)) return fail(400, { loginError: 'Ungültiger Instagram-Benutzername' });
+		if (!password) return fail(400, { loginError: 'Passwort fehlt' });
+		const res = await instaloaderLogin(username, password, code);
+		if (!res.ok) return fail(400, { loginError: res.error });
+		return { loginOk: res.username };
 	},
 
 	// VPS-Pfad: Session-Datei (einmalig lokal via `instaloader --login` erzeugt) hochladen, damit

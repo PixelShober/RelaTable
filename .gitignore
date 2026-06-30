@@ -23,3 +23,6 @@ vite.config.js.timestamp-*
 /playwright-report
 /playwright/.cache
 /coverage
+
+# Python bytecode (Instagram-Import-Skripte)
+__pycache__/

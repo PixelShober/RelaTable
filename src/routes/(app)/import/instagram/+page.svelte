@@ -84,9 +84,33 @@
 				<summary class="cursor-pointer text-[11px] text-mut">Auf gehostetem Server (VPS)?</summary>
 
 				<p class="mt-1.5 text-[11px] text-mut">
-					Instagram blockt interaktive Logins von Server-IPs, daher kein Passwort-Login hier. Stattdessen
-					Session einmalig <b>lokal</b> erzeugen — <code>instaloader --login=DEIN_IG_NAME</code> — und die Datei
-					<code>~/.config/instaloader/session-NAME</code> hochladen. Danach funktioniert „Laden" oben direkt am Server.
+					<b>Login (Server):</b> Benutzername, Passwort und — falls 2FA aktiv — den aktuellen Code aus deiner
+					Authenticator-App eingeben. Die Session wird am Server gespeichert; danach „Laden" oben.
+					Hinweis: Instagram blockt Logins von Server-IPs manchmal mit Checkpoint.
+				</p>
+				<form
+					method="POST"
+					action="?/login"
+					use:enhance={() => {
+						fetching = true;
+						return async ({ update }) => {
+							await update({ reset: false });
+							fetching = false;
+						};
+					}}
+					class="mt-1.5 flex flex-wrap items-end gap-2"
+				>
+					<input name="igUsername" placeholder="benutzername" class="inp flex-1" autocomplete="off" />
+					<input name="password" type="password" placeholder="passwort" class="inp flex-1" autocomplete="off" />
+					<input name="code" placeholder="2FA-Code" class="inp w-28" autocomplete="off" inputmode="numeric" />
+					<button class="btn btn-sm btn-primary" disabled={fetching}>Einloggen</button>
+				</form>
+				{#if form?.loginError}<p class="mt-1.5 text-[12px] text-warn">⚠ {form.loginError}</p>{/if}
+				{#if form?.loginOk}<p class="mt-1.5 text-[12px] text-ok">✓ Eingeloggt als @{form.loginOk} — jetzt „Laden".</p>{/if}
+
+				<p class="mt-3 text-[11px] text-mut">
+					<b>Alternativ:</b> Session einmalig <b>lokal</b> erzeugen — <code>instaloader --login=DEIN_IG_NAME</code> —
+					und die Datei <code>~/.config/instaloader/session-NAME</code> hochladen.
 				</p>
 				<form
 					method="POST"

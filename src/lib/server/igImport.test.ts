@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseScriptOutput, sessionFilePath, isValidIgUsername } from './igImport';
+import { parseScriptOutput, sessionFilePath, isValidIgUsername, parseLoginOutput } from './igImport';
 
 describe('parseScriptOutput', () => {
 	it('parses a successful payload and maps snake_case fields', () => {
@@ -55,5 +55,18 @@ describe('session path + username', () => {
 		expect(isValidIgUsername('../../etc/passwd')).toBe(false);
 		expect(isValidIgUsername('a/b')).toBe(false);
 		expect(isValidIgUsername('')).toBe(false);
+	});
+});
+
+describe('parseLoginOutput', () => {
+	it('returns the username on success', () => {
+		expect(parseLoginOutput('{"ok":true,"username":"pixel.thenics"}')).toEqual({ ok: true, username: 'pixel.thenics' });
+	});
+	it('surfaces the error message', () => {
+		expect(parseLoginOutput('{"ok":false,"error":"2FA-Code erforderlich"}')).toEqual({ ok: false, error: '2FA-Code erforderlich' });
+	});
+	it('handles empty / invalid output', () => {
+		expect(parseLoginOutput('').ok).toBe(false);
+		expect(parseLoginOutput('boom').ok).toBe(false);
 	});
 });

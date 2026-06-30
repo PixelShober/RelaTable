@@ -52,6 +52,38 @@ export function parseScriptOutput(stdout: string): FetchResult {
 	return { ok: true, followees };
 }
 
+export interface LoginResult {
+	ok: boolean;
+	username?: string;
+	error?: string;
+}
+
+/** Parse ig_login.py output (last JSON line). Pure + tested. */
+export function parseLoginOutput(stdout: string): LoginResult {
+	const line = stdout.trim().split('\n').filter(Boolean).pop();
+	if (!line) return { ok: false, error: 'Keine Ausgabe vom Login-Skript' };
+	try {
+		const o = JSON.parse(line) as Record<string, unknown>;
+		if (!o.ok) return { ok: false, error: String(o.error || 'Login fehlgeschlagen') };
+		return { ok: true, username: String(o.username || '') };
+	} catch {
+		return { ok: false, error: 'Login-Skript lieferte ungültiges JSON' };
+	}
+}
+
+/** Log in via instaloader and save the session. Password/code go over stdin, never argv. */
+export function instaloaderLogin(username: string, password: string, code: string): Promise<LoginResult> {
+	return new Promise((resolve) => {
+		const child = spawn('python3', ['scripts/ig_login.py', username], { cwd: process.cwd() });
+		let out = '';
+		child.stdout.on('data', (d) => (out += d));
+		child.on('error', () => resolve({ ok: false, error: 'python3 nicht gefunden — Python + instaloader installiert?' }));
+		child.on('close', () => resolve(parseLoginOutput(out)));
+		child.stdin.write(JSON.stringify({ password, code }));
+		child.stdin.end();
+	});
+}
+
 /** Spawn the instaloader helper and return the followees of `igUsername`. */
 export function fetchFollowings(igUsername: string): Promise<FetchResult> {
 	return new Promise((resolve) => {
