@@ -10,7 +10,6 @@
 
 	type Row = { username: string; name: string; profilePicUrl: string; selected: boolean; matchPersonId: number | '' };
 
-	// Rebuild editable rows only when a fetch returns — other form updates (e.g. import result) must not wipe them.
 	let rows = $state<Row[]>([]);
 	$effect(() => {
 		const f = form?.followees as Followee[] | undefined;
@@ -21,11 +20,18 @@
 				username: x.username,
 				name: x.fullName || x.username,
 				profilePicUrl: x.profilePicUrl,
-				selected: !match, // default: import the ones not already known
+				selected: !match,
 				matchPersonId: match as number | ''
 			};
 		});
 	});
+
+	// After login, data.sessions is stale (server-side load ran before login). Patch it client-side.
+	let sessions = $derived(
+		form?.loginOk && !data.sessions.includes(form.loginOk as string)
+			? [...data.sessions, form.loginOk as string]
+			: data.sessions
+	);
 
 	let selectedCount = $derived(rows.filter((r) => r.selected).length);
 
@@ -50,145 +56,98 @@
 
 <div class="flex-1 overflow-y-auto p-4">
 	<div class="mx-auto max-w-3xl space-y-4">
-		<!-- Step 1: load followings -->
-		<section class="card p-3 text-[13px]">
-			<b class="text-[13px]">1 · Followings laden</b>
-			<p class="mt-1 text-[11px] text-mut">
-				Nutzt eine gespeicherte instaloader-Session. Einmalig im Terminal anmelden:
-				<code>instaloader --login=DEIN_IG_NAME</code>. Danach hier denselben Namen eingeben.
-			</p>
-			<form
-				method="POST"
-				action="?/fetch"
-				use:enhance={() => {
-					fetching = true;
-					return async ({ update }) => {
-						await update({ reset: false });
-						fetching = false;
-					};
-				}}
-				class="mt-2 flex flex-wrap items-center gap-2"
-			>
-				<input
-					name="igUsername"
-					value={form?.igUsername ?? ''}
-					placeholder="instagram-benutzername"
-					class="inp flex-1"
-					autocomplete="off"
-				/>
-				<button class="btn btn-sm btn-primary" disabled={fetching}>{fetching ? 'lädt …' : 'Laden'}</button>
-			</form>
-			{#if form?.fetchError}<p class="mt-2 text-[12px] text-warn">⚠ {form.fetchError}</p>{/if}
 
-			<details class="mt-3">
-				<summary class="cursor-pointer text-[11px] text-mut">Auf gehostetem Server (VPS)?</summary>
+		{#if sessions.length > 0}
+			<!-- Session vorhanden: direkt Followings laden -->
+			<section class="card p-3 text-[13px]">
+				<b class="text-[13px]">Followings laden</b>
+				<form
+					method="POST"
+					action="?/fetch"
+					use:enhance={() => {
+						fetching = true;
+						return async ({ update }) => { await update({ reset: false }); fetching = false; };
+					}}
+					class="mt-2 flex items-center gap-2"
+				>
+					<select name="igUsername" class="inp flex-1">
+						{#each sessions as s}
+							<option value={s} selected={s === form?.igUsername || s === form?.loginOk}>@{s}</option>
+						{/each}
+					</select>
+					<button class="btn btn-sm btn-primary flex-none" disabled={fetching}>
+						{fetching ? 'lädt …' : 'Laden'}
+					</button>
+				</form>
+				{#if form?.fetchError}<p class="mt-2 text-[12px] text-warn">⚠ {form.fetchError}</p>{/if}
+				{#if form?.loginOk && !form?.fetchError}
+					<p class="mt-1.5 text-[11px] text-ok">✓ Eingeloggt als @{form.loginOk}{form?.followees ? ' — Followings geladen.' : ' — jetzt Laden.'}</p>
+				{/if}
+			</section>
+		{/if}
 
-				<p class="mt-1.5 text-[11px] text-mut">
-					<b>Login (Server):</b> Benutzername, Passwort und — falls 2FA aktiv — den aktuellen Code aus deiner
-					Authenticator-App eingeben. Die Session wird am Server gespeichert; danach „Laden" oben.
-					Hinweis: Instagram blockt Logins von Server-IPs manchmal mit Checkpoint.
-				</p>
+		<!-- Login (immer sichtbar wenn keine Session, oder als zweite Karte zum Konto hinzufügen) -->
+		{#if sessions.length === 0 || true}
+			<section class="card p-3 text-[13px]" class:hidden={sessions.length > 0 && rows.length > 0}>
+				<b class="text-[13px]">{sessions.length === 0 ? 'Instagram-Login' : 'Weiteres Konto hinzufügen'}</b>
+				{#if sessions.length === 0}
+					<p class="mt-1 text-[11px] text-mut">Einmalig einloggen — Session wird am Server gespeichert, Followings werden direkt geladen.</p>
+				{/if}
 				<form
 					method="POST"
 					action="?/login"
 					use:enhance={() => {
 						fetching = true;
-						return async ({ update }) => {
-							await update({ reset: false });
-							fetching = false;
-						};
+						return async ({ update }) => { await update({ reset: false }); fetching = false; };
 					}}
-					class="mt-1.5 flex flex-wrap items-center gap-2"
+					class="mt-2 grid grid-cols-[1fr_1fr_auto_auto] items-center gap-2"
 				>
-					<input name="igUsername" placeholder="benutzername" class="inp flex-1" autocomplete="off" />
-					<input name="password" type="password" placeholder="passwort" class="inp flex-1" autocomplete="off" />
-					<input name="code" placeholder="2FA-Code" class="inp w-28" autocomplete="off" inputmode="numeric" />
+					<input name="igUsername" placeholder="benutzername" class="inp" autocomplete="off" />
+					<input name="password" type="password" placeholder="passwort" class="inp" autocomplete="off" />
+					<input name="code" placeholder="2FA" class="inp w-20" autocomplete="off" inputmode="numeric" />
 					<button class="btn btn-sm btn-primary" disabled={fetching}>Einloggen</button>
 				</form>
 				{#if form?.loginError}<p class="mt-1.5 text-[12px] text-warn">⚠ {form.loginError}</p>{/if}
-				{#if form?.loginOk}<p class="mt-1.5 text-[12px] text-ok">✓ Eingeloggt als @{form.loginOk} — jetzt „Laden".</p>{/if}
-
-				<p class="mt-3 text-[11px] text-mut">
-					<b>Alternativ:</b> Session einmalig <b>lokal</b> erzeugen — <code>instaloader --login=DEIN_IG_NAME</code> —
-					und die Datei <code>~/.config/instaloader/session-NAME</code> hochladen.
-				</p>
-				<form
-					method="POST"
-					action="?/session"
-					enctype="multipart/form-data"
-					use:enhance={() => {
-						fetching = true;
-						return async ({ update }) => {
-							await update({ reset: false });
-							fetching = false;
-						};
-					}}
-					class="mt-1.5 flex flex-wrap items-center gap-2"
-				>
-					<input name="igUsername" placeholder="instagram-benutzername" class="inp flex-1" autocomplete="off" />
-					<input name="session" type="file" class="text-[11px]" />
-					<button class="btn btn-sm" disabled={fetching}>Session hochladen</button>
-				</form>
-				{#if form?.sessionError}<p class="mt-1.5 text-[12px] text-warn">⚠ {form.sessionError}</p>{/if}
-				{#if form?.sessionSaved}<p class="mt-1.5 text-[12px] text-ok">✓ Session für @{form.sessionSaved} gespeichert — jetzt „Laden".</p>{/if}
-
-				<p class="mt-3 text-[11px] text-mut">
-					Alternativ ganz ohne Server-Fetch: lokal <code>python3 scripts/ig_followings.py DEIN_IG_NAME</code> ausführen
-					und die Ausgabe einfügen.
-				</p>
-				<form
-					method="POST"
-					action="?/paste"
-					use:enhance={() => {
-						fetching = true;
-						return async ({ update }) => {
-							await update({ reset: false });
-							fetching = false;
-						};
-					}}
-					class="mt-1.5"
-				>
-					<textarea
-						name="json"
-						rows="4"
-						spellcheck="false"
-						class="inp w-full font-mono text-[11px]"
-						placeholder={'{"ok":true,"followees":[{"username":"…","full_name":"…","profile_pic_url":"https://…"}]}'}
-					></textarea>
-					<button class="btn btn-sm mt-1.5" disabled={fetching}>JSON übernehmen</button>
-				</form>
-			</details>
-		</section>
+			</section>
+		{/if}
 
 		<!-- Step 2: pick + match -->
 		{#if rows.length}
 			<section class="card p-3 text-[13px]">
 				<div class="flex flex-wrap items-center justify-between gap-2">
-					<b class="text-[13px]">2 · Auswählen &amp; zuordnen ({selectedCount}/{rows.length})</b>
+					<b class="text-[13px]">Auswählen &amp; zuordnen ({selectedCount}/{rows.length})</b>
 					<div class="flex gap-2">
 						<button class="btn btn-sm" onclick={() => toggleAll(true)}>Alle</button>
 						<button class="btn btn-sm" onclick={() => toggleAll(false)}>Keine</button>
 					</div>
 				</div>
 				<p class="mt-1 text-[11px] text-mut">
-					Profilbild &amp; Instagram-Link werden befüllt. „Zuordnen" ergänzt eine vorhandene Person statt eine neue
-					anzulegen (Name/Bild bleiben dabei erhalten).
+					Profilbild &amp; Instagram-Link werden befüllt (Bilder werden überschrieben). „Zuordnen" ergänzt eine vorhandene Person.
 				</p>
 
-				<div class="mt-2 space-y-1.5">
+				<div class="mt-2 space-y-1">
 					{#each rows as row (row.username)}
-						<div class="flex items-center gap-2.5 rounded-md border border-line p-1.5" class:opacity-50={!row.selected}>
-							<input type="checkbox" bind:checked={row.selected} class="size-4 flex-none" />
+						<div
+							class="grid items-center gap-x-2 rounded-md border border-line px-2 py-1.5"
+							style="grid-template-columns: 1rem 2.25rem 1fr minmax(0,40%)"
+							class:opacity-40={!row.selected}
+						>
+							<input type="checkbox" bind:checked={row.selected} class="size-4" />
 							{#if row.profilePicUrl}
-								<img src={`/import/instagram/thumb?u=${encodeURIComponent(row.profilePicUrl)}`} alt="" loading="lazy" class="size-9 flex-none rounded-full object-cover" />
+								<img
+									src={`/import/instagram/thumb?u=${encodeURIComponent(row.profilePicUrl)}`}
+									alt=""
+									loading="lazy"
+									class="size-9 rounded-full object-cover"
+								/>
 							{:else}
-								<div class="size-9 flex-none rounded-full bg-line"></div>
+								<div class="size-9 rounded-full bg-line"></div>
 							{/if}
-							<div class="min-w-0 flex-1">
-								<input bind:value={row.name} class="inp w-full py-1 text-[12px]" />
-								<a href={`https://www.instagram.com/${row.username}/`} target="_blank" rel="noreferrer" class="text-[11px] text-mut hover:text-ink">@{row.username}</a>
+							<div class="min-w-0">
+								<input bind:value={row.name} class="inp w-full py-0.5 text-[12px]" />
+								<a href={`https://www.instagram.com/${row.username}/`} target="_blank" rel="noreferrer" class="block truncate text-[11px] text-mut hover:text-ink">@{row.username}</a>
 							</div>
-							<select bind:value={row.matchPersonId} class="inp max-w-[40%] py-1 text-[12px]" title="Auf vorhandene Person zuordnen">
+							<select bind:value={row.matchPersonId} class="inp py-0.5 text-[12px]" title="Auf vorhandene Person zuordnen">
 								<option value="">＋ Neu anlegen</option>
 								{#each data.persons as p (p.id)}
 									<option value={p.id}>↪ {p.name}</option>
@@ -203,10 +162,7 @@
 					action="?/import"
 					use:enhance={() => {
 						importing = true;
-						return async ({ update }) => {
-							await update({ reset: false });
-							importing = false;
-						};
+						return async ({ update }) => { await update({ reset: false }); importing = false; };
 					}}
 					class="mt-3"
 				>

@@ -1,27 +1,34 @@
 import { fail } from '@sveltejs/kit';
-import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { readdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
 import { db } from '$lib/server/db';
-import {
-	fetchFollowings,
-	parseScriptOutput,
-	sessionFilePath,
-	isValidIgUsername,
-	instaloaderLogin
-} from '$lib/server/igImport';
+import { fetchFollowings, sessionFilePath, isValidIgUsername, instaloaderLogin } from '$lib/server/igImport';
 import { saveImageFromUrl } from '$lib/server/uploads';
 import type { Actions, PageServerLoad } from './$types';
 
 const normHandle = (h: string) => h.trim().toLowerCase().replace(/^@/, '').replace(/\/+$/, '');
 
+async function savedSessions(): Promise<string[]> {
+	const base = process.env.XDG_CONFIG_HOME || join(homedir(), '.config');
+	try {
+		const files = await readdir(join(base, 'instaloader'));
+		return files.filter((f) => f.startsWith('session-')).map((f) => f.slice('session-'.length)).filter(isValidIgUsername);
+	} catch {
+		return [];
+	}
+}
+
 export const load: PageServerLoad = async ({ locals }) => {
 	const ownerId = locals.user!.id;
-	const persons = await db.person.findMany({
-		where: { ownerId },
-		select: { id: true, name: true, socialAccounts: { select: { platform: true, handle: true } } },
-		orderBy: { name: 'asc' }
-	});
-	// handle/name → personId, so the client can pre-select an obvious match.
+	const [persons, sessions] = await Promise.all([
+		db.person.findMany({
+			where: { ownerId },
+			select: { id: true, name: true, socialAccounts: { select: { platform: true, handle: true } } },
+			orderBy: { name: 'asc' }
+		}),
+		savedSessions()
+	]);
 	const byHandle: Record<string, number> = {};
 	const byName: Record<string, number> = {};
 	for (const p of persons) {
@@ -33,7 +40,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 	return {
 		persons: persons.map((p) => ({ id: p.id, name: p.name })),
 		matchHandle: byHandle,
-		matchName: byName
+		matchName: byName,
+		sessions
 	};
 };
 
@@ -47,7 +55,6 @@ export const actions: Actions = {
 		return { followees: res.followees, igUsername };
 	},
 
-	// VPS-Pfad: direkt in der Web-UI einloggen (Passwort + TOTP-Code), Session landet auf /data.
 	login: async ({ request }) => {
 		const data = await request.formData();
 		const username = String(data.get('igUsername') ?? '').trim().toLowerCase().replace(/^@/, '');
@@ -55,32 +62,12 @@ export const actions: Actions = {
 		const code = String(data.get('code') ?? '').trim();
 		if (!isValidIgUsername(username)) return fail(400, { loginError: 'Ungültiger Instagram-Benutzername' });
 		if (!password) return fail(400, { loginError: 'Passwort fehlt' });
-		const res = await instaloaderLogin(username, password, code);
-		if (!res.ok) return fail(400, { loginError: res.error });
-		return { loginOk: res.username };
-	},
-
-	// VPS-Pfad: Session-Datei (einmalig lokal via `instaloader --login` erzeugt) hochladen, damit
-	// der Server selbst fetchen kann. Kein Passwort/2FA auf dem Server.
-	session: async ({ request }) => {
-		const data = await request.formData();
-		const username = String(data.get('igUsername') ?? '').trim().toLowerCase().replace(/^@/, '');
-		const file = data.get('session');
-		if (!isValidIgUsername(username)) return fail(400, { sessionError: 'Ungültiger Instagram-Benutzername' });
-		if (!(file instanceof File) || file.size === 0) return fail(400, { sessionError: 'Keine Session-Datei' });
-		if (file.size > 256 * 1024) return fail(400, { sessionError: 'Datei zu groß — das ist keine Session-Datei' });
-		const path = sessionFilePath(username);
-		await mkdir(dirname(path), { recursive: true });
-		await writeFile(path, Buffer.from(await file.arrayBuffer()));
-		return { sessionSaved: username };
-	},
-
-	// Hosting-Pfad: Fetch lokal ausführen, Skript-JSON hier einfügen (kein instaloader/IG-Login auf dem Server).
-	paste: async ({ request }) => {
-		const data = await request.formData();
-		const res = parseScriptOutput(String(data.get('json') ?? ''));
-		if (!res.ok) return fail(400, { fetchError: res.error });
-		return { followees: res.followees, igUsername: '' };
+		const loginRes = await instaloaderLogin(username, password, code);
+		if (!loginRes.ok) return fail(400, { loginError: loginRes.error });
+		// Auto-fetch immediately after login — no extra click needed.
+		const fetchRes = await fetchFollowings(username);
+		if (!fetchRes.ok) return { loginOk: loginRes.username, fetchError: fetchRes.error, followees: undefined };
+		return { loginOk: loginRes.username, followees: fetchRes.followees, igUsername: username };
 	},
 
 	import: async ({ request, locals }) => {
@@ -109,16 +96,9 @@ export const actions: Actions = {
 			if (it.matchPersonId) {
 				const person = await db.person.findFirst({ where: { id: it.matchPersonId, ownerId } });
 				if (!person) continue;
-				// Don't overwrite an existing image or rename the person — only fill gaps + add the link.
-				if (fileName && !person.profileImagePath) {
-					await db.person.update({ where: { id: person.id }, data: { profileImagePath: fileName } });
-				}
-				const exists = await db.socialAccount.findFirst({
-					where: { personId: person.id, platform: 'Instagram', handle }
-				});
-				if (!exists) {
-					await db.socialAccount.create({ data: { personId: person.id, platform: 'Instagram', handle, url } });
-				}
+				await db.person.update({ where: { id: person.id }, data: { profileImagePath: fileName ?? undefined } });
+				const exists = await db.socialAccount.findFirst({ where: { personId: person.id, platform: 'Instagram', handle } });
+				if (!exists) await db.socialAccount.create({ data: { personId: person.id, platform: 'Instagram', handle, url } });
 				updated++;
 			} else {
 				await db.person.create({
