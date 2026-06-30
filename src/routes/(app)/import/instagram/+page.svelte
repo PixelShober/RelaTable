@@ -98,7 +98,7 @@
 							fetching = false;
 						};
 					}}
-					class="mt-1.5 flex flex-wrap items-end gap-2"
+					class="mt-1.5 flex flex-wrap items-center gap-2"
 				>
 					<input name="igUsername" placeholder="benutzername" class="inp flex-1" autocomplete="off" />
 					<input name="password" type="password" placeholder="passwort" class="inp flex-1" autocomplete="off" />
@@ -180,7 +180,7 @@
 						<div class="flex items-center gap-2.5 rounded-md border border-line p-1.5" class:opacity-50={!row.selected}>
 							<input type="checkbox" bind:checked={row.selected} class="size-4 flex-none" />
 							{#if row.profilePicUrl}
-								<img src={row.profilePicUrl} alt="" referrerpolicy="no-referrer" class="size-9 flex-none rounded-full object-cover" />
+								<img src={`/import/instagram/thumb?u=${encodeURIComponent(row.profilePicUrl)}`} alt="" loading="lazy" class="size-9 flex-none rounded-full object-cover" />
 							{:else}
 								<div class="size-9 flex-none rounded-full bg-line"></div>
 							{/if}
