@@ -23,6 +23,7 @@
 	let filterOpen = $state(false); // mobile bottom-sheet
 	let showConnectionsOnly = $state(false);
 	let legendDimmed = $state(false);
+	let showLegend = $state(true);
 
 	const PERSON_COLOR = '#3a6ea5';
 	const EVENT_COLOR = '#b06a2c';
@@ -55,10 +56,13 @@
 	}
 
 	function avatarPinIcon(person: { name: string; image?: string | null }) {
-		if (!person.image) return pinIcon(PERSON_COLOR);
+		const initials = person.name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+		const inner = person.image
+			? `<img src="${esc(person.image)}" alt="${esc(person.name)}" style="width:100%;height:100%;object-fit:cover;display:block" />`
+			: `<span style="font-size:11px;font-weight:700;color:#fff;line-height:1">${initials}</span>`;
 		return L.divIcon({
 			className: '',
-			html: `<div style="width:30px;height:30px;border-radius:50%;overflow:hidden;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35);background:${PERSON_COLOR}"><img src="${esc(person.image)}" alt="${esc(person.name)}" style="width:100%;height:100%;object-fit:cover;display:block" /></div>`,
+			html: `<div style="width:30px;height:30px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35);background:${PERSON_COLOR}">${inner}</div>`,
 			iconSize: [30, 30],
 			iconAnchor: [15, 15],
 			popupAnchor: [0, -16]
@@ -75,10 +79,25 @@
 		eventCluster.clearLayers();
 		connectionLayer.clearLayers();
 
+		// ponytail: fixed 0.0025° spiral (~250m); upgrade to zoom-aware if needed
+		const jitter = new Map<number, [number, number]>();
+		{
+			const cnt: Record<string, number> = {};
+			for (const p of data.personMarkers) {
+				const key = `${p.lat},${p.lng}`;
+				const i = cnt[key] ?? 0;
+				cnt[key] = i + 1;
+				const a = (i * 137.5 * Math.PI) / 180;
+				const r = i === 0 ? 0 : 0.0025;
+				jitter.set(p.id, [r * Math.cos(a), r * Math.sin(a)]);
+			}
+		}
+
 		if (showPersons || showConnectionsOnly) {
 			for (const p of data.personMarkers) {
-				const m = L.marker([p.lat, p.lng], {
-					icon: showConnectionsOnly ? avatarPinIcon(p) : pinIcon(PERSON_COLOR)
+				const [dlat, dlng] = jitter.get(p.id) ?? [0, 0];
+				const m = L.marker([p.lat + dlat, p.lng + dlng], {
+					icon: avatarPinIcon(p)
 				});
 				m.bindPopup(
 					`<b>${esc(p.name)}</b><br><span style="color:#777">${esc(p.city ?? 'Stadt')}</span><br><a href="/personen/${p.id}">Profil ↗</a>`
@@ -100,10 +119,12 @@
 
 		if (showConnectionsOnly) {
 			for (const connection of data.connectionSegments) {
+				const [f0, f1] = jitter.get(connection.sourceId) ?? [0, 0];
+				const [t0, t1] = jitter.get(connection.targetId) ?? [0, 0];
 				const line = L.polyline(
 					[
-						[connection.from.lat, connection.from.lng],
-						[connection.to.lat, connection.to.lng]
+						[connection.from.lat + f0, connection.from.lng + f1],
+						[connection.to.lat + t0, connection.to.lng + t1]
 					],
 					{
 						color: connection.color,
@@ -255,13 +276,20 @@
 			<span>⊙ Sensible</span>
 			<input type="checkbox" bind:checked={showSensitive} disabled={showConnectionsOnly} />
 		</label>
+		{#if overlayVisible}
+			<hr class="my-1.5 border-line" />
+			<label class="flex items-center justify-between">
+				<span>Legende</span>
+				<input type="checkbox" aria-label="Legende anzeigen" bind:checked={showLegend} />
+			</label>
+		{/if}
 	</div>
 
-	{#if overlayVisible}
+	{#if overlayVisible && showLegend}
 		<div
 			bind:this={legendEl}
 			data-testid="map-legend-overlay"
-			class={`legend-overlay absolute left-2.5 z-[500] w-[180px] max-w-[calc(100%-1.25rem)] overflow-y-auto rounded-lg border border-line bg-card/95 p-2 text-[11px] shadow-sm transition-opacity duration-200 ${legendDimmed ? 'opacity-20' : 'opacity-100'}`}
+			class={`legend-overlay absolute left-2.5 md:left-auto md:right-2.5 z-[500] w-[180px] max-w-[calc(100%-1.25rem)] overflow-y-auto rounded-lg border border-line bg-card/95 p-2 text-[11px] shadow-sm transition-opacity duration-200 ${legendDimmed ? 'opacity-20' : 'opacity-100'}`}
 		>
 			{#if showConnectionsOnly}
 				<b>Legende</b>
@@ -299,6 +327,9 @@
 			<label class="flex items-center justify-between py-1.5"><span>Personen</span><input type="checkbox" bind:checked={showPersons} disabled={showConnectionsOnly} /></label>
 			<label class="flex items-center justify-between py-1.5"><span>Ereignisse</span><input type="checkbox" bind:checked={showEvents} disabled={showConnectionsOnly} /></label>
 			<label class="flex items-center justify-between py-1.5"><span>Sensible</span><input type="checkbox" bind:checked={showSensitive} disabled={showConnectionsOnly} /></label>
+			{#if overlayVisible}
+				<label class="flex items-center justify-between py-1.5"><span>Legende</span><input type="checkbox" aria-label="Legende anzeigen" bind:checked={showLegend} /></label>
+			{/if}
 			<button class="btn mt-2 w-full justify-center" onclick={() => (filterOpen = false)}>Schließen</button>
 		</div>
 	{/if}

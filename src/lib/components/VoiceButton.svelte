@@ -164,10 +164,9 @@
 		phase = 'recording';
 		if (!SR) {
 			logClientEvent('speech.unsupported');
-			error = 'Spracherkennung wird von diesem Browser nicht unterstützt — bitte Text eingeben.';
+			error = 'Spracherkennung nicht verfügbar — tippe deine Eingabe.';
 			phase = 'error';
-			convoOpen = true;
-			void scrollToBottom();
+			active = true; // show recording overlay with text input
 			return;
 		}
 		// Use synthetic pulse bars; a parallel WebAudio mic stream can starve SpeechRecognition on Android.
@@ -220,10 +219,13 @@
 			if (code === 'aborted') return;
 			if (code === 'not-allowed') {
 				error = 'Kein Mikrofonzugriff — bitte Browser-Berechtigung erlauben.';
-			} else if (code === 'service-not-allowed') {
-				error = 'Spracherkennung ist vom Browser oder Gerät blockiert.';
-			} else if (code === 'network') {
-				error = 'Netzwerkfehler bei der Browser-Spracherkennung.';
+			} else if (code === 'service-not-allowed' || code === 'network') {
+				// Chromium on Linux without embedded Google key — silently fall through to text input
+				stopCapture();
+				active = true;
+				error = 'Spracherkennung nicht verfügbar — tippe deine Eingabe.';
+				phase = 'error';
+				return;
 			} else if (code === 'audio-capture') {
 				error = 'Mikrofon nicht verfügbar — Eingabegerät prüfen.';
 			} else if (code === 'language-not-supported') {
@@ -613,23 +615,21 @@
 					>✓</button>
 				</div>
 
-				{#if !SR}
-					<div class="flex w-full max-w-xs gap-2 px-4">
-						<input
-							bind:value={draft}
-							onkeydown={(e) => { if (e.key === 'Enter') { stopCapture(); submitDraft(); } }}
-							placeholder="Eingabe tippen…"
-							class="inp flex-1 text-sm"
-							aria-label="Text eingeben"
-						/>
-						<button
-							type="button"
-							onclick={() => { stopCapture(); submitDraft(); }}
-							disabled={!draft.trim()}
-							class="btn btn-primary btn-sm"
-						>Senden</button>
-					</div>
-				{/if}
+				<div class="flex w-full max-w-xs gap-2 px-4">
+					<input
+						bind:value={draft}
+						onkeydown={(e) => { if (e.key === 'Enter') { stopCapture(); submitDraft(); } }}
+						placeholder="Eingabe tippen…"
+						class="inp flex-1 text-sm"
+						aria-label="Text eingeben"
+					/>
+					<button
+						type="button"
+						onclick={() => { stopCapture(); submitDraft(); }}
+						disabled={!draft.trim()}
+						class="btn btn-primary btn-sm"
+					>Senden</button>
+				</div>
 			</div>
 		{/if}
 	</div>
